@@ -1,0 +1,8 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory `/Users/stephaneguillemot/Documents/dev/tls'
+docker buildx build --platform linux/arm64 -t kpture/admission:latest .
+docker push kpture/admission:latest
+helm uninstall tls || true
+helm install tls  ./charts/tls
+make: Leaving directory `/Users/stephaneguillemot/Documents/dev/tls'
+ 

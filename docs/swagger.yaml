@@ -1,0 +1,231 @@
+basePath: /api/v2
+definitions:
+  capture.CaptureStatus:
+    properties:
+      capture_state:
+        type: string
+      description:
+        type: string
+    type: object
+  capture.Pod:
+    properties:
+      agentStatus:
+        type: string
+      metadata:
+        $ref: '#/definitions/capture.PodMetadata'
+      status:
+        $ref: '#/definitions/capture.PodStatus'
+    type: object
+  capture.PodMetadata:
+    properties:
+      filter:
+        type: string
+      name:
+        type: string
+      namespace:
+        type: string
+    type: object
+  capture.PodStatus:
+    properties:
+      phase:
+        type: string
+      started:
+        type: string
+    type: object
+  capture.kpture:
+    properties:
+      archive_location:
+        type: string
+      buffer_size:
+        type: string
+      name:
+        type: string
+      packet_miss:
+        type: integer
+      packet_nb:
+        type: integer
+      pods:
+        items:
+          $ref: '#/definitions/capture.PodMetadata'
+        type: array
+      size:
+        type: string
+      status:
+        $ref: '#/definitions/capture.CaptureStatus'
+      uuid:
+        type: string
+    type: object
+  httpserver.captureRequest:
+    properties:
+      name:
+        type: string
+      pods:
+        items:
+          $ref: '#/definitions/capture.PodMetadata'
+        type: array
+    type: object
+host: 192.168.1.16:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a sample server Petstore server.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Kpture-backend
+  version: "1.0"
+paths:
+  /kubernetes/capture:
+    post:
+      consumes:
+      - application/json
+      description: Start K8S capture
+      parameters:
+      - description: selected pods for capture
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/httpserver.captureRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          headers:
+            Websocket:
+              type: string
+          schema:
+            $ref: '#/definitions/capture.kpture'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Start K8S capture
+      tags:
+      - kubernetes
+  /kubernetes/capture/{uuid}:
+    get:
+      description: Get K8S capture
+      parameters:
+      - description: capture uuid
+        in: path
+        name: uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/capture.kpture'
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get K8S capture
+      tags:
+      - kubernetes
+  /kubernetes/capture/{uuid}/download:
+    get:
+      description: Download K8S capture
+      parameters:
+      - description: capture uuid
+        in: path
+        name: uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/capture.kpture'
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Download K8S capture
+      tags:
+      - kubernetes
+  /kubernetes/capture/{uuid}/stop:
+    put:
+      description: Stop K8S capture
+      parameters:
+      - description: capture uuid
+        in: path
+        name: uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/capture.kpture'
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Stop K8S capture
+      tags:
+      - kubernetes
+  /kubernetes/captures:
+    get:
+      description: Get K8S captures
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              $ref: '#/definitions/capture.kpture'
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get K8S captures
+      tags:
+      - kubernetes
+  /kubernetes/pods:
+    get:
+      consumes:
+      - '*/*'
+      description: Retrieve all pods in cluster
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/capture.Pod'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Retrieve all pods in cluster
+      tags:
+      - kubernetes
+swagger: "2.0"
