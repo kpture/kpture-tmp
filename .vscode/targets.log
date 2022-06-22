@@ -7,7 +7,7 @@ make all --print-data-base --no-builtin-variables --no-builtin-rules --question
 
 # This program built for i386-apple-darwin11.3.0
 
-# Make data base, printed on Tue Jun 14 21:29:01 2022
+# Make data base, printed on Thu Jun 23 00:29:05 2022
 
 # Variables
 
@@ -42,7 +42,7 @@ __CFBundleIdentifier = com.microsoft.VSCode
 # environment
 INFOPATH = /opt/homebrew/share/info:
 # environment
-VSCODE_IPC_HOOK_EXTHOST = /var/folders/5_/cj9fht_11hz0wcnsm68_lfcm0000gn/T/vscode-ipc-71c207f9-27a3-44a1-93a5-c7f5df6b70b4.sock
+VSCODE_IPC_HOOK_EXTHOST = /var/folders/5_/cj9fht_11hz0wcnsm68_lfcm0000gn/T/vscode-ipc-7871caff-5318-4e06-91fd-2f64c229c437.sock
 # environment
 VSCODE_CWD = /
 # environment
@@ -62,7 +62,7 @@ KUBECONFIG = /Users/stephaneguillemot/.kube/config:/Users/stephaneguillemot//.ku
 # default
 .FEATURES := target-specific order-only second-expansion else-if archives jobserver check-symlink
 # environment
-SSH_AUTH_SOCK = /private/tmp/com.apple.launchd.lkpt3RwTDI/Listeners
+SSH_AUTH_SOCK = /private/tmp/com.apple.launchd.hm8StS7Vis/Listeners
 # automatic
 %F = $(notdir $%)
 # environment
@@ -82,7 +82,7 @@ HOME = /Users/stephaneguillemot
 # default
 MAKEFILEPATH = $(shell /usr/bin/xcode-select -print-path 2>/dev/null || echo /Developer)/Makefiles
 # environment
-VSCODE_CODE_CACHE_PATH = /Users/stephaneguillemot/Library/Application Support/Code/CachedData/4af164ea3a06f701fe3e89a2bcbb421d2026b68f
+VSCODE_CODE_CACHE_PATH = /Users/stephaneguillemot/Library/Application Support/Code/CachedData/30d9c6cd9483b2cc586687151bcbcd635f373630
 # environment
 LOGNAME = stephaneguillemot
 # environment
@@ -120,7 +120,7 @@ TMPDIR = /var/folders/5_/cj9fht_11hz0wcnsm68_lfcm0000gn/T/
 # automatic
 *F = $(notdir $*)
 # environment
-VSCODE_IPC_HOOK = /Users/stephaneguillemot/Library/Application Support/Code/1.68.0-main.sock
+VSCODE_IPC_HOOK = /Users/stephaneguillemot/Library/Application Support/Code/1.68.1-main.sock
 # makefile
 MAKEFLAGS = Rrqp
 # environment
@@ -128,7 +128,7 @@ MFLAGS = -Rrqp
 # automatic
 *D = $(patsubst %/,%,$(dir $*))
 # environment
-XPC_SERVICE_NAME = application.com.microsoft.VSCode.1666031.1666037
+XPC_SERVICE_NAME = application.com.microsoft.VSCode.2395044.2395050
 # environment
 HOMEBREW_PREFIX = /opt/homebrew
 # automatic
@@ -158,7 +158,7 @@ MAKELEVEL := 0
 # environment
 LANG = C
 # environment
-VSCODE_PID = 14659
+VSCODE_PID = 6914
 # variable set hash-table stats:
 # Load=74/1024=7%, Rehash=0, Collisions=2/97=2%
 
@@ -168,9 +168,9 @@ VSCODE_PID = 14659
 
 # Directories
 
-# . (device 16777230, inode 2144091): 18 files, no impossibilities.
+# . (device 16777231, inode 2144091): 20 files, no impossibilities.
 
-# 18 files, no impossibilities in 1 directories.
+# 20 files, no impossibilities in 1 directories.
 
 # Implicit Rules
 
@@ -265,7 +265,7 @@ profile:
 # strcache size: total = 4096 / max = 4096 / min = 4096 / avg = 4096
 # strcache free: total = 4087 / max = 4087 / min = 4087 / avg = 4087
 
-# Finished Make data base on Tue Jun 14 21:29:01 2022
+# Finished Make data base on Thu Jun 23 00:29:05 2022
 
  
 make: *** No rule to make target `all'.  Stop.

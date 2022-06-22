@@ -50,7 +50,10 @@ func handleMutate(w http.ResponseWriter, r *http.Request) {
 	admResp, err := admissionResponseFromReview(admReview)
 	if err != nil {
 		w.WriteHeader(400)
-		w.Write([]byte(err.Error()))
+		_, err = w.Write([]byte(err.Error()))
+		if err != nil {
+			fmt.Println(err)
+		}
 		return
 	}
 
@@ -64,10 +67,16 @@ func handleMutate(w http.ResponseWriter, r *http.Request) {
 		msg := fmt.Errorf("error marshaling response: %v", err)
 		log.Println(msg)
 		w.WriteHeader(500)
-		w.Write([]byte(msg.Error()))
+		_, err = w.Write([]byte(msg.Error()))
+		if err != nil {
+			fmt.Println(err)
+		}
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	log.Printf("allowing pod as %v", string(resp))
-	w.Write(resp)
+	_, err = w.Write(resp)
+	if err != nil {
+		fmt.Println(err)
+	}
 }

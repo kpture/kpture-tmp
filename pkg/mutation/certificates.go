@@ -94,7 +94,10 @@ func genCerts() (*tls.Config, error) {
 		return nil, err
 	}
 
-	createMutationConfig(caPEM)
+	err = createMutationConfig(caPEM)
+	if err != nil {
+		return nil, err
+	}
 
 	return &tls.Config{Certificates: []tls.Certificate{c}}, nil
 }

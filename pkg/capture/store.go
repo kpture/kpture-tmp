@@ -2,167 +2,128 @@ package capture
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"newproxy/pkg/logger"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
-	"github.com/dustin/go-humanize"
-	"github.com/sirupsen/logrus"
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
+	"github.com/google/gopacket/pcapgo"
 )
 
-type store struct {
-	BasePath           string
-	captureInfos       []*kpture
-	descriptorLocation string
-	logger             *logrus.Entry
-}
-
-func newStore(basePath string) *store {
-	return &store{
-		BasePath:           basePath,
-		captureInfos:       []*kpture{},
-		descriptorLocation: filepath.Join(basePath, "descriptor.json"),
-		logger:             logger.NewLogger("store"),
-	}
-}
-
-type AdditionalFile struct {
-	Path string
-	Data string
-}
-
-var wireSharkpreference AdditionalFile = AdditionalFile{
-	Path: filepath.Join("profiles", "preferences"),
-	Data: `nameres.mac_name: FALSE
-nameres.network_name: TRUE
-nameres.use_custom_dns_servers: TRUE`,
-}
-
-func (s *store) Save(kpture *kpture, additionnalFiles ...AdditionalFile) error {
-	additionnalFiles = append(additionnalFiles, wireSharkpreference)
-
-	cptureLoc := filepath.Join(s.BasePath, kpture.UUID)
-
-	s.logger.Debug("Saving capture to ", cptureLoc)
-	err := os.MkdirAll(cptureLoc, 0755)
+func (k *Kpture) storePackets(basepath string, name string, ch chan gopacket.Packet) error {
+	err := os.MkdirAll(basepath, 0755)
 	if err != nil {
-		s.logger.Error("Error writing archive:", err)
+		return err
+	}
+	location := filepath.Join(basepath, name) + ".pcap"
+	file, err := os.Create(location)
+	if err != nil {
+		fmt.Println("error creating file", err)
+		return nil
+	}
+
+	w := pcapgo.NewWriter(file)
+	err = w.WriteFileHeader(1024, layers.LinkTypeEthernet)
+	if err != nil {
 		return err
 	}
 
-	location := filepath.Join(s.BasePath, kpture.UUID, kpture.Name) + ".tar.gz"
-	s.logger.Debug("Create tar archive ", kpture.Name+".tar.gz")
-	out, err := os.Create(location)
-	if err != nil {
-		s.logger.Error("Error writing archive:", err)
-		return err
-	}
-	gw := gzip.NewWriter(out)
-	tw := tar.NewWriter(gw)
+	go func() {
+		for packet := range ch {
+			fmt.Println("packet", name)
 
-	for i, capture := range kpture.captures {
-		kpture.Status.Desciption = fmt.Sprintf("Saving capturing pod %d/%d", i+1, len(kpture.captures))
-		buf := capture.GetFileBuf()
-		if buf != nil {
-			hdr := &tar.Header{
-				Name: filepath.Join(kpture.Name, "pods", capture.Pod.Name) + ".pcap",
-				Mode: 0600,
-				Size: int64(len(buf.Bytes())),
+			err := w.WritePacket(packet.Metadata().CaptureInfo, packet.Data())
+			if err != nil {
+				fmt.Println("error writing packet", err)
 			}
+		}
+		file.Close()
+	}()
 
-			if err := tw.WriteHeader(hdr); err != nil {
-				s.logger.Error(err)
+	return nil
+}
+
+func (k *Kpture) createTar() error {
+
+	err := os.MkdirAll(filepath.Join(k.archivePath, k.UUID), 0755)
+	if err != nil {
+		return err
+	}
+	buf := new(bytes.Buffer)
+	zr := gzip.NewWriter(buf)
+	tw := tar.NewWriter(zr)
+
+	// walk through every file in the folder
+	err = filepath.Walk(k.basePath, func(file string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+		var header *tar.Header // generate tar header
+		header, err = tar.FileInfoHeader(fi, file)
+		if err != nil {
+			return err
+		}
+		newStr := strings.Replace(file, filepath.Join(os.TempDir(), k.UUID), "", -1)
+		header.Name = newStr
+
+		// write header
+		if err := tw.WriteHeader(header); err != nil {
+			return err
+		}
+		// if not a dir, write file content
+		if !fi.IsDir() {
+			data, err := os.Open(file)
+			if err != nil {
 				return err
 			}
-			if _, err := tw.Write(buf.Bytes()); err != nil {
-				s.logger.Error(err)
+			if _, err := io.Copy(tw, data); err != nil {
 				return err
 			}
 		}
-	}
-
-	for _, file := range additionnalFiles {
-		hdr := &tar.Header{
-			Name: filepath.Join(kpture.Name, file.Path),
-			Mode: 0600,
-			Size: int64(len(file.Data)),
-		}
-		if err := tw.WriteHeader(hdr); err != nil {
-			s.logger.Error(err)
-			return err
-		}
-		if _, err := tw.Write([]byte(file.Data)); err != nil {
-			s.logger.Error(err)
-			return err
-		}
-	}
-
-	kpture.ArchiveLocation = filepath.Join(kpture.UUID, kpture.Name) + ".tar.gz"
-	tw.Close()
-	gw.Close()
-	out.Close()
-
-	file, err := os.Open(location)
+		return nil
+	})
 	if err != nil {
-		s.logger.Error(err)
 		return err
 	}
-	fi, err := file.Stat()
-	if err != nil {
-		s.logger.Error(err)
+
+	// produce tar
+	if err := tw.Close(); err != nil {
 		return err
 	}
-	file.Close()
+	// produce gzip
+	if err := zr.Close(); err != nil {
+		return err
+	}
 
-	kpture.Size = humanize.Bytes(uint64(fi.Size()))
-	kpture.CleanBuffer()
-	kpture.Status.CaptureState = CaptureStatusReady
-	kpture.Status.Desciption = "Capture is ready for download"
-	return s.writeDescriptor(kpture)
+	fileToWrite, err := os.OpenFile(filepath.Join(k.archivePath, k.UUID, k.Name+".tar.gzip"), os.O_CREATE|os.O_RDWR, os.FileMode(0755))
+	if err != nil {
+		panic(err)
+	}
+	if _, err := io.Copy(fileToWrite, buf); err != nil {
+		panic(err)
+	}
+
+	k.Status = KptureStatusTerminated
+	//os.RemoveAll(k.UUID)
+
+	return nil
 }
 
-func (s *store) writeDescriptor(kp *kpture) error {
-	data, err := ioutil.ReadFile(s.descriptorLocation)
+func (k *Kpture) MarshalDescription() error {
+	bytes, err := json.MarshalIndent(k, "", "    ")
 	if err != nil {
-		if !os.IsNotExist(err) {
-			s.logger.Error("Error reading file descriptor", err)
-			return err
-		}
-	}
-	descriptor := make(map[string]*kpture)
-	if len(data) > 0 {
-		if err := json.Unmarshal(data, &descriptor); err != nil {
-			s.logger.Error("Error Unmarshaling data descriptor", err)
-			return err
-		}
-	}
-	descriptor[kp.UUID] = kp
-	d, err := json.Marshal(descriptor)
-	if err != nil {
-		s.logger.Error("Error Marshaling data descriptor", err)
 		return err
 	}
-	return ioutil.WriteFile(s.descriptorLocation, d, 0644)
-}
-
-func (s *store) GetStoreKpture() (map[string]*kpture, error) {
-	descriptor := make(map[string]*kpture)
-	data, err := ioutil.ReadFile(s.descriptorLocation)
+	fileToWrite, err := os.OpenFile(filepath.Join(k.archivePath, k.UUID, "descriptor.json"), os.O_CREATE|os.O_RDWR, os.FileMode(0755))
 	if err != nil {
-		if os.IsNotExist(err) {
-			return descriptor, nil
-		}
-		return nil, err
+		panic(err)
 	}
-	if err := json.Unmarshal(data, &descriptor); err != nil {
-		s.logger.Error("Error Unmarshaling data descriptor", err)
-		return nil, err
-	}
-
-	s.logger.Info("Loaded ", len(descriptor), " captures")
-	return descriptor, nil
+	_, err = fileToWrite.Write(bytes)
+	return err
 }

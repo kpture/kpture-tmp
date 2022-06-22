@@ -7,19 +7,18 @@ import (
 	"log"
 	"net/http"
 
-	admissionv1 "k8s.io/api/admission/v1"
 	v1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func admissionReviewFromRequest(r *http.Request) (*admissionv1.AdmissionReview, error) {
+func admissionReviewFromRequest(r *http.Request) (*v1.AdmissionReview, error) {
 	// Validate that the incoming content type is correct.
 	if r.Header.Get("Content-Type") != "application/json" {
 		return nil, fmt.Errorf("expected application/json content-type")
 	}
 
-	admissionReviewRequest := &admissionv1.AdmissionReview{}
+	admissionReviewRequest := &v1.AdmissionReview{}
 
 	err := json.NewDecoder(r.Body).Decode(&admissionReviewRequest)
 	if err != nil {
@@ -28,7 +27,7 @@ func admissionReviewFromRequest(r *http.Request) (*admissionv1.AdmissionReview, 
 	return admissionReviewRequest, nil
 }
 
-func admissionResponseFromReview(admReview *admissionv1.AdmissionReview) (*admissionv1.AdmissionResponse, error) {
+func admissionResponseFromReview(admReview *v1.AdmissionReview) (*v1.AdmissionResponse, error) {
 	// check if valid pod resource
 	podResource := metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
 	if admReview.Request.Resource != podResource {
@@ -36,7 +35,7 @@ func admissionResponseFromReview(admReview *admissionv1.AdmissionReview) (*admis
 		return nil, err
 	}
 
-	admissionResponse := &admissionv1.AdmissionResponse{}
+	admissionResponse := &v1.AdmissionResponse{}
 
 	// Decode the pod from the AdmissionReview.
 	rawRequest := admReview.Request.Object.Raw
