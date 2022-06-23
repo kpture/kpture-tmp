@@ -6,37 +6,26 @@ import (
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
-	"crypto/x509/pkix"
 	"encoding/pem"
-	"fmt"
-	"math/big"
-	"time"
+
+	"github.com/pkg/errors"
 )
 
 func genCerts() (*tls.Config, error) {
+	const rsaKeylen = 4096
+
 	var caPEM, serverCertPEM, serverPrivKeyPEM *bytes.Buffer
-	// CA config
-	ca := &x509.Certificate{
-		SerialNumber: big.NewInt(2020),
-		Subject: pkix.Name{
-			Organization: []string{"kpture.io"},
-		},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(1, 0, 0),
-		IsCA:                  true,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-		BasicConstraintsValid: true,
-	}
+
+	ca := getCACertificate()
 	// CA private key
-	caPrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
+	caPrivKey, err := rsa.GenerateKey(cryptorand.Reader, rsaKeylen)
 	if err != nil {
-		fmt.Println(err)
+		return nil, errors.WithMessage(err, "could not generate rsa key")
 	}
 	// Self signed CA certificate
 	caBytes, err := x509.CreateCertificate(cryptorand.Reader, ca, ca, &caPrivKey.PublicKey, caPrivKey)
 	if err != nil {
-		fmt.Println(err)
+		return nil, errors.WithMessage(err, "could not generate rsa key")
 	}
 	// PEM encode CA cert
 	caPEM = new(bytes.Buffer)
@@ -44,36 +33,18 @@ func genCerts() (*tls.Config, error) {
 		Type:  "CERTIFICATE",
 		Bytes: caBytes,
 	})
-
-	dnsNames := []string{"*.kpture.svc", "tls.kpture.svc"}
-	commonName := "tls.kpture.svc"
-
 	// server cert config
-	cert := &x509.Certificate{
-		DNSNames: dnsNames,
-
-		SerialNumber: big.NewInt(1658),
-		Subject: pkix.Name{
-			CommonName:   commonName,
-			Organization: []string{"kpture.io"},
-		},
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().AddDate(1, 0, 0),
-		SubjectKeyId: []byte{1, 2, 3, 4, 6},
-		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-		KeyUsage:     x509.KeyUsageDigitalSignature,
-	}
-
+	cert := getserverCertificate()
 	// server private key
-	serverPrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
+	serverPrivKey, err := rsa.GenerateKey(cryptorand.Reader, rsaKeylen)
 	if err != nil {
-		fmt.Println(err)
+		return nil, errors.WithMessage(err, "could not generate private key")
 	}
 
 	// sign the server cert
 	serverCertBytes, err := x509.CreateCertificate(cryptorand.Reader, cert, ca, &serverPrivKey.PublicKey, caPrivKey)
 	if err != nil {
-		fmt.Println(err)
+		return nil, errors.WithMessage(err, "could not create x509 key")
 	}
 
 	// PEM encode the  server cert and key

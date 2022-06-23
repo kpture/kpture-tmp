@@ -12,7 +12,7 @@ deployments:
   helm:
     # We are deploying this project with the Helm chart you provided
     chart:
-      name: ./chart
+      name: ../chart
     # Under `values` we can define the values for this Helm chart used during `helm install/upgrade`
     # You may also use `valuesFiles` to load values from files, e.g. valuesFiles: ["values.yaml"]
     values:
@@ -40,10 +40,11 @@ dev:
     # `excludePaths` option expects an array of strings with paths that should not be synchronized between the
     # local filesystem and the remote container filesystem. It uses the same syntax as `.gitignore`.
     excludePaths:
-    - .git/
+    - ../.git/
+    localSubPath: ../
     uploadExcludePaths:
     - Dockerfile
-    arch: arm64
+   # arch: arm64
   # `dev.terminal` tells DevSpace to open a terminal as a last step during `devspace dev`
   terminal:
     imageSelector: ${IMAGE} # Select the Pod that runs our `${IMAGE}`
@@ -51,7 +52,7 @@ dev:
     # This is often useful to display help info for new users or perform initial tasks (e.g. installing dependencies)
     # DevSpace has generated an example ./devspace_start.sh file in your local project - Feel free to customize it!
     command:
-    - ./devspace_start.sh
+    - bash
 
   # Since our Helm charts and manifests deployments are often optimized for production,
   # DevSpace let's you swap out Pods dynamically to get a better dev environment
@@ -63,6 +64,7 @@ dev:
     # Besides replacing the container image, let's also apply some patches to the `spec` of our Pod
     # We are overwriting `command` + `args` for the first container in our selected Pod, so it starts with `sleep 9999999`
     # Using `sleep 9999999` as PID 1 (instead of the regular ENTRYPOINT), allows you to start the application manually
+    
     patches:
     - op: replace
       path: spec.containers[0].command
@@ -85,4 +87,4 @@ profiles:
     images:
       app:
         image: ${IMAGE} # Use the value of our `${IMAGE}` variable here (see vars above)
-        dockerfile: ./Dockerfile
+        dockerfile: ../Dockerfile

@@ -11,15 +11,16 @@ import (
 	"github.com/zput/zxcTool/ztLog/zt_formatter"
 )
 
-var (
+const (
 	DefaultLevel = logrus.DebugLevel
 )
 
-//NewLogger Create a Logrus logger with the nested-logrus-formatter format
+// NewLogger Create a Logrus logger with the nested-logrus-formatter format.
 func NewLogger(field string) *logrus.Entry {
-	var exampleFormatter = &zt_formatter.ZtFormatter{
+	exampleFormatter := &zt_formatter.ZtFormatter{
 		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
 			filename := path.Base(f.File)
+
 			return "", fmt.Sprintf("::%s:%d", filename, f.Line)
 		},
 		Formatter: nested.Formatter{
@@ -33,5 +34,6 @@ func NewLogger(field string) *logrus.Entry {
 	l.SetLevel(DefaultLevel)
 	l.SetReportCaller(true)
 	l.SetFormatter(exampleFormatter)
+
 	return l.WithFields(logrus.Fields{"field": field})
 }

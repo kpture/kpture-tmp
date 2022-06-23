@@ -1,25 +1,27 @@
 definitions:
-  agent.AgentInfo:
+  agent.Info:
     properties:
       name:
         type: string
       namespace:
         type: string
-      targetUrl:
+      status:
         type: string
-      type:
+      system:
+        type: string
+      targetUrl:
         type: string
     type: object
   capture.CaptureInfo:
     properties:
-      packet_nb:
+      packetNb:
         type: integer
       size:
         type: integer
     type: object
   capture.Kpture:
     properties:
-      capture_info:
+      captureInfo:
         $ref: '#/definitions/capture.CaptureInfo'
       name:
         type: string
@@ -28,9 +30,16 @@ definitions:
       uuid:
         type: string
     type: object
+  server.KptureNamespaceRequest:
+    properties:
+      kptureName:
+        type: string
+      kptureNamespace:
+        type: string
+    type: object
   server.KptureRequest:
     properties:
-      agents:
+      agentsRequest:
         items:
           properties:
             name:
@@ -39,7 +48,7 @@ definitions:
               type: string
           type: object
         type: array
-      name:
+      kptureName:
         type: string
     type: object
 host: localhost:8080
@@ -65,7 +74,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/agent.AgentInfo'
+              $ref: '#/definitions/agent.Info'
             type: array
         "500":
           description: Internal Server Error
@@ -105,7 +114,7 @@ paths:
       - kptures
   /api/v1/kpture/{uuid}:
     get:
-      description: get K8S capture
+      description: Get kapture
       parameters:
       - description: capture uuid
         in: path
@@ -127,12 +136,12 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      summary: get K8S capture
+      summary: Get kapture
       tags:
       - kptures
   /api/v1/kpture/{uuid}/download:
     get:
-      description: Download Kpture
+      description: Download kpture
       parameters:
       - description: capture uuid
         in: path
@@ -150,7 +159,7 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      summary: Download Kpture
+      summary: Download kpture
       tags:
       - kptures
   /api/v1/kpture/{uuid}/stop:
@@ -180,9 +189,59 @@ paths:
       summary: Stop Kpture
       tags:
       - kptures
+  /api/v1/kpture/k8s/namespace:
+    post:
+      consumes:
+      - application/json
+      description: Start namespace kpture
+      parameters:
+      - description: namespace for capture
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/server.KptureNamespaceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          headers:
+            Websocket:
+              type: string
+          schema:
+            $ref: '#/definitions/capture.Kpture'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Start namespace kpture
+      tags:
+      - kptures kubernetes
+  /api/v1/kpture/k8s/namespaces:
+    get:
+      consumes:
+      - application/json
+      description: Get enabled kubernetes namespaces
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get enabled kubernetes namespaces
+      tags:
+      - kubernetes
   /api/v1/kptures:
     get:
-      description: get K8S capture
+      description: Get kaptures
       produces:
       - application/json
       responses:
@@ -200,7 +259,7 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      summary: get K8S capture
+      summary: Get kaptures
       tags:
       - kptures
 swagger: "2.0"

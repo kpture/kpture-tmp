@@ -1,3 +1,20 @@
 {
-    "makefile.extensionOutputFolder": "./.vscode"
+    "go.lintOnSave": "workspace",
+    "go.formatTool": "gofumpt",
+    "go.lintTool": "golangci-lint",
+    "go.lintFlags": [
+        "--enable-all",
+        "--disable",
+        "gci", //Disable GCI , conflict with gofumpimport
+        "--disable",
+        "godot",
+        "--fast"
+    ],
+    "go.addTags": {
+        "tags": "yaml",
+        "promptForTags": false,
+        "transform": "camelcase",
+        "template": ""
+    },
+    "go.useLanguageServer": true,
 }

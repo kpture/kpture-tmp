@@ -1,6 +1,7 @@
-
-
 # Ignore DevSpace cache and log folder
 .devspace/
 *.gzip
-
+*.tar
+./outputs/
+.vscode/*.log
+.vscode/extensions.json

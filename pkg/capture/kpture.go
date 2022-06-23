@@ -2,6 +2,7 @@ package capture
 
 import (
 	"context"
+	"io/fs"
 	"newproxy/pkg/agent"
 	"newproxy/pkg/logger"
 	"os"
@@ -15,27 +16,30 @@ import (
 
 type Agent interface {
 	Packets(ctx context.Context, req *capture.CaptureDescriptor) (chan gopacket.Packet, error)
-	Info() agent.Info
+	Info() *agent.Info
+	HealthCheck()
 }
 
-//Kpture represent a Kpture
-//It can contains multiples targets
+// Kpture represent a Kpture
+// It can contains multiples targets.
 type Kpture struct {
-	Agents      []Agent `json:"-"`
-	Name        string  `json:"name,omitempty"`
-	UUID        string  `json:"uuid,omitempty"`
+	agents []Agent `json:"-"`
+
+	AgentsInfos []*agent.Info `json:"agents,omitempty"`
+
+	Name        string `json:"name,omitempty"`
+	UUID        string `json:"uuid,omitempty"`
 	archivePath string
-	CaptureInfo CaptureInfo  `json:"capture_info,omitempty"`
+	CaptureInfo CaptureInfo  `json:"captureInfo,omitempty"`
 	Status      KptureStatus `json:"status,omitempty"`
 	logger      *logrus.Entry
-	ctx         context.Context
-	ctxCancel   context.CancelFunc
+	stopCh      chan bool
 	basePath    string
 }
 
 type CaptureInfo struct {
 	Size     int `json:"size,omitempty"`
-	PacketNB int `json:"packet_nb,omitempty"`
+	PacketNB int `json:"packetNb,omitempty"`
 }
 
 func NewKpture(name, archivePath string, agents []Agent) (*Kpture, error) {
@@ -43,80 +47,119 @@ func NewKpture(name, archivePath string, agents []Agent) (*Kpture, error) {
 	k.Name = name
 	k.UUID = uuid.New().String()
 	k.logger = logger.NewLogger("kpture")
-	k.Agents = agents
-	k.ctx, k.ctxCancel = context.WithCancel(context.Background())
+	k.agents = agents
+	k.AgentsInfos = []*agent.Info{}
+	k.stopCh = make(chan bool)
 	k.archivePath = archivePath
-	err := os.MkdirAll(filepath.Join(os.TempDir(), k.UUID, k.Name), 0755)
+	err := os.MkdirAll(filepath.Join(os.TempDir(), k.UUID, k.Name), fs.ModePerm)
 	k.basePath = filepath.Join(os.TempDir(), k.UUID, k.Name)
+
+	for _, currA := range agents {
+		k.AgentsInfos = append(k.AgentsInfos, currA.Info())
+	}
+
 	return k, err
 }
 
 func (k *Kpture) Start() {
+	ctx, ctxCancel := context.WithCancel(context.Background())
 
-	globalChan := make(chan gopacket.Packet, 1024)
+	go func() {
+		<-k.stopCh
+		ctxCancel()
+	}()
+
+	globalChan := make(chan gopacket.Packet, bufChanSize)
+
 	err := k.storePackets(k.basePath, "kpture", globalChan)
 	if err != nil {
 		panic(err)
 	}
 
-	statsChannel := make(chan gopacket.Packet, 1024)
-	err = k.stats(statsChannel)
+	statsChan := make(chan gopacket.Packet, bufChanSize)
+
+	err = k.stats(statsChan)
 	if err != nil {
 		panic(err)
 	}
 
+	k.handleAgents(ctx, globalChan, statsChan)
+
 	go func() {
-		<-k.ctx.Done()
+		<-k.stopCh
 		close(globalChan)
 	}()
 
-	for _, agent := range k.Agents {
+	k.Status = KptureStatusRunning
+}
 
-		agentChan := make(chan gopacket.Packet, 1024)
+func (k *Kpture) handleAgents(ctx context.Context, chans ...chan gopacket.Packet) {
+	for _, agent := range k.agents {
+		agentChan := make(chan gopacket.Packet, bufChanSize)
+
 		err := k.storePackets(filepath.Join(k.basePath, agent.Info().Name), agent.Info().Name, agentChan)
 		if err != nil {
 			panic(err)
 		}
 
-		packet, err := agent.Packets(k.ctx, &capture.CaptureDescriptor{
+		packet, err := agent.Packets(ctx, &capture.CaptureDescriptor{
 			InterfaceName: "eth0",
-			SnapshotLen:   1024,
+			SnapshotLen:   snapshotLen,
 			Promiscuous:   false,
 			Filter:        "port not 10000",
 		})
 		if err != nil {
 			panic(err)
 		}
+
 		go func() {
 			for p := range packet {
 				select {
-				case <-k.ctx.Done():
+				case <-ctx.Done():
 					close(agentChan)
+
 					return
 				default:
-					globalChan <- p
+					for i := 0; i < len(chans); i++ {
+						chans[i] <- p
+					}
+
 					agentChan <- p
-					statsChannel <- p
 				}
 			}
 		}()
 	}
-	k.Status = KptureStatusRunning
 }
 
 func (k *Kpture) Stop() error {
 	k.Status = KptureStatusStopped
-	k.ctxCancel()
+	k.stopCh <- true
+	k.logger.Debug("kpture stopped")
 	k.Status = KptureStatusWriting
-	err := k.createTar()
+
+	buf, err := k.createTar()
 	if err != nil {
 		k.logger.Error(err)
+
 		return err
 	}
+
+	if err := k.writeFile(buf); err != nil {
+		k.logger.Error(err)
+		k.Status = KptureStatusError
+
+		return err
+	}
+
+	k.Status = KptureStatusTerminated
+
 	err = k.MarshalDescription()
 	if err != nil {
 		k.logger.Error(err)
+		k.Status = KptureStatusError
+
 		return err
 	}
+
 	return nil
 }

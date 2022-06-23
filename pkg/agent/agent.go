@@ -2,13 +2,13 @@ package agent
 
 import (
 	"context"
-	"fmt"
 	"newproxy/pkg/logger"
 	"time"
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/kpture/agent/api/capture"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -17,29 +17,22 @@ import (
 // CaptureSocket Represent a single target capture.
 type CaptureSocket struct {
 	logger    *logrus.Entry
-	AgentInfo Info
+	errors    chan error
+	AgentInfo *Info
 }
 
-const (
-	AgentTypek8s int = iota
-	AgentTypeContainer
-)
-
-type Info struct {
-	Name      string `json:"name,omitempty"`
-	Namespace string `json:"namespace,omitempty"`
-	Type      int    `json:"type,omitempty"`
-	TargetURL string `json:"targetUrl,omitempty"`
-}
-
-func NewCaptureSocket(info Info) *CaptureSocket {
-	return &CaptureSocket{
+func NewCaptureSocket(info *Info) *CaptureSocket {
+	c := &CaptureSocket{
 		logger:    logger.NewLogger("capture"),
 		AgentInfo: info,
+		errors:    make(chan error, 1000),
 	}
+	c.HealthCheck()
+
+	return c
 }
 
-func (c *CaptureSocket) Info() Info {
+func (c *CaptureSocket) Info() *Info {
 	return c.AgentInfo
 }
 
@@ -48,16 +41,18 @@ func (c *CaptureSocket) Packets(
 	captureCtx context.Context,
 	request *capture.CaptureDescriptor,
 ) (chan gopacket.Packet, error) {
-
 	var err error
-	pkch := make(chan gopacket.Packet, 1024)
+
+	pkch := make(chan gopacket.Packet, bufChanSize)
+
 	conn, err := grpc.Dial(c.AgentInfo.TargetURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return nil, fmt.Errorf("error dialing with target %s %w", c.AgentInfo.TargetURL, err)
+		return nil, errors.WithMessagef(err, "error dialing with target %s", c.AgentInfo.TargetURL)
 	}
+
 	socketCapture, err := capture.NewKptureClient(conn).Capture(captureCtx, request)
 	if err != nil {
-		return nil, fmt.Errorf("error starting capture %s %w", c.AgentInfo.TargetURL, err)
+		return nil, errors.WithMessagef(err, "error starting capture %s", c.AgentInfo.Name)
 	}
 
 	go func() {
@@ -65,12 +60,14 @@ func (c *CaptureSocket) Packets(
 			select {
 			case <-captureCtx.Done():
 				conn.Close()
+
 				return
 			default:
 				packet, err := socketCapture.Recv()
 				if err != nil {
 					return
 				}
+
 				info := gopacket.CaptureInfo{
 					Timestamp:      time.Now(),
 					CaptureLength:  int(packet.CaptureInfo.CaptureLength),
@@ -85,4 +82,21 @@ func (c *CaptureSocket) Packets(
 	}()
 
 	return pkch, nil
+}
+
+func (c *CaptureSocket) HealthCheck() {
+	conn, err := grpc.Dial(c.AgentInfo.TargetURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		c.AgentInfo.Status = StatusDown
+
+		return
+	}
+
+	if _, err := capture.NewKptureClient(conn).Health(context.Background(), &capture.Empty{}); err != nil {
+		c.AgentInfo.Status = StatusDown
+
+		return
+	}
+
+	c.AgentInfo.Status = StatusUP
 }

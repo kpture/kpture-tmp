@@ -3,10 +3,9 @@ package capture
 import (
 	"archive/tar"
 	"bytes"
-	"compress/gzip"
 	"encoding/json"
-	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,50 +13,51 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcapgo"
+	"github.com/pkg/errors"
 )
 
 func (k *Kpture) storePackets(basepath string, name string, ch chan gopacket.Packet) error {
-	err := os.MkdirAll(basepath, 0755)
+	err := os.MkdirAll(basepath, fs.ModePerm)
 	if err != nil {
 		return err
 	}
+
 	location := filepath.Join(basepath, name) + ".pcap"
+
 	file, err := os.Create(location)
 	if err != nil {
-		fmt.Println("error creating file", err)
-		return nil
+		return errors.WithMessage(err, "error creating file")
 	}
 
 	w := pcapgo.NewWriter(file)
-	err = w.WriteFileHeader(1024, layers.LinkTypeEthernet)
+
+	err = w.WriteFileHeader(pcapFileHeader, layers.LinkTypeEthernet)
 	if err != nil {
 		return err
 	}
 
 	go func() {
 		for packet := range ch {
-			fmt.Println("packet", name)
-
 			err := w.WritePacket(packet.Metadata().CaptureInfo, packet.Data())
 			if err != nil {
-				fmt.Println("error writing packet", err)
+				k.logger.Error(errors.WithMessage(err, "could not write packet"))
 			}
 		}
+
 		file.Close()
 	}()
 
 	return nil
 }
 
-func (k *Kpture) createTar() error {
-
-	err := os.MkdirAll(filepath.Join(k.archivePath, k.UUID), 0755)
+func (k *Kpture) createTar() (*bytes.Buffer, error) {
+	err := os.MkdirAll(filepath.Join(k.archivePath, k.UUID), fs.ModePerm)
 	if err != nil {
-		return err
+		return nil, err
 	}
+
 	buf := new(bytes.Buffer)
-	zr := gzip.NewWriter(buf)
-	tw := tar.NewWriter(zr)
+	tw := tar.NewWriter(buf)
 
 	// walk through every file in the folder
 	err = filepath.Walk(k.basePath, func(file string, fi os.FileInfo, err error) error {
@@ -70,6 +70,11 @@ func (k *Kpture) createTar() error {
 			return err
 		}
 		newStr := strings.Replace(file, filepath.Join(os.TempDir(), k.UUID), "", -1)
+
+		if strings.HasPrefix(newStr, "/") {
+			newStr = strings.TrimPrefix(newStr, "/")
+		}
+
 		header.Name = newStr
 
 		// write header
@@ -86,44 +91,53 @@ func (k *Kpture) createTar() error {
 				return err
 			}
 		}
+
 		return nil
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// produce tar
 	if err := tw.Close(); err != nil {
-		return err
-	}
-	// produce gzip
-	if err := zr.Close(); err != nil {
-		return err
+		return nil, err
 	}
 
-	fileToWrite, err := os.OpenFile(filepath.Join(k.archivePath, k.UUID, k.Name+".tar.gzip"), os.O_CREATE|os.O_RDWR, os.FileMode(0755))
+	// if err := zr.Close(); err != nil {
+	// 	return nil, err
+	// }
+
+	return buf, err
+}
+
+func (k *Kpture) writeFile(buf *bytes.Buffer) error {
+	location := filepath.Join(k.archivePath, k.UUID, k.Name+".tar")
+
+	fileToWrite, err := os.OpenFile(location, os.O_CREATE|os.O_RDWR, os.FileMode(fs.ModePerm))
 	if err != nil {
-		panic(err)
+		return err
 	}
+
 	if _, err := io.Copy(fileToWrite, buf); err != nil {
-		panic(err)
+		return err
 	}
 
-	k.Status = KptureStatusTerminated
-	//os.RemoveAll(k.UUID)
-
-	return nil
+	return os.RemoveAll(k.basePath)
 }
 
 func (k *Kpture) MarshalDescription() error {
 	bytes, err := json.MarshalIndent(k, "", "    ")
 	if err != nil {
-		return err
+		return errors.WithMessage(err, "could not mashal kpture to bytes")
 	}
-	fileToWrite, err := os.OpenFile(filepath.Join(k.archivePath, k.UUID, "descriptor.json"), os.O_CREATE|os.O_RDWR, os.FileMode(0755))
+
+	location := filepath.Join(k.archivePath, k.UUID, "descriptor.json")
+
+	fileToWrite, err := os.OpenFile(location, os.O_CREATE|os.O_RDWR, os.FileMode(fs.ModePerm))
 	if err != nil {
 		panic(err)
 	}
+
 	_, err = fileToWrite.Write(bytes)
-	return err
+
+	return errors.WithMessage(err, "could not write kpture description")
 }

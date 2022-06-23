@@ -9,3 +9,9 @@ const (
 	KptureStatusError      KptureStatus = "error"
 	KptureStatusTerminated KptureStatus = "terminated"
 )
+
+const (
+	bufChanSize    int    = 1024
+	snapshotLen    int32  = 1024
+	pcapFileHeader uint32 = 1024
+)

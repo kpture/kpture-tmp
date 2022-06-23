@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 
+	"github.com/pkg/errors"
 	v1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,6 +24,7 @@ func admissionReviewFromRequest(r *http.Request) (*v1.AdmissionReview, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return admissionReviewRequest, nil
 }
 
@@ -32,6 +33,7 @@ func admissionResponseFromReview(admReview *v1.AdmissionReview) (*v1.AdmissionRe
 	podResource := metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
 	if admReview.Request.Resource != podResource {
 		err := fmt.Errorf("did not receive pod, got %s", admReview.Request.Resource.Resource)
+
 		return nil, err
 	}
 
@@ -43,24 +45,14 @@ func admissionResponseFromReview(admReview *v1.AdmissionReview) (*v1.AdmissionRe
 
 	err := json.NewDecoder(bytes.NewReader(rawRequest)).Decode(&pod)
 	if err != nil {
-		err := fmt.Errorf("error decoding raw pod: %v", err)
-		return nil, err
+		return nil, errors.WithMessage(err, "error decoding raw pod")
 	}
 
-	var patch string
 	patchType := v1.PatchTypeJSONPatch
 
-	log.Println("pod has following labels", pod.Labels)
-	// if _, ok := pod.Labels["tcpdump-sidecar"]; ok {
-	patch = `[{ "op": "add", "path": "/metadata/labels/kpture-agent", "value": "true" },{"op":"add","path":"/spec/containers/1","value":{"image":"kpture/agent:latest","imagePullPolicy":"IfNotPresent","name":"ubuntu","ports":[{"name":"agent","containerPort":10000,"protocol":"TCP"}]}}]`
-	// }
-
 	admissionResponse.Allowed = true
-	if patch != "" {
-		log.Println("patching the pod with:", patch)
-		admissionResponse.PatchType = &patchType
-		admissionResponse.Patch = []byte(patch)
-	}
+	admissionResponse.PatchType = &patchType
+	admissionResponse.Patch = []byte(injectionPatch)
 
 	return admissionResponse, nil
 }

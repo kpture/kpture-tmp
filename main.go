@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	_ "newproxy/docs"
 	"newproxy/pkg/logger"
+	"newproxy/pkg/mutation"
 	"newproxy/pkg/server"
 
 	"k8s.io/client-go/kubernetes"
@@ -11,18 +11,20 @@ import (
 )
 
 func main() {
-
 	// //HTTPS Server to receive the mutation request from K8s admission webhook
 	mainLog := logger.NewLogger("main")
-	// httpsServer, err := mutation.NewMutationWebHookServer()
-	// if err != nil {
-	// 	mainLog.Errorf("error creating mutation webhook server: %v", err)
-	// }
-	// go httpsServer.Start()
+
+	httpsServer, err := mutation.NewMutationWebHookServer()
+	if err != nil {
+		mainLog.Errorf("error creating mutation webhook server: %v", err)
+	}
+
+	go httpsServer.Start()
 
 	k8sconfig, err := rest.InClusterConfig()
 	if err != nil {
 		mainLog.Error(err)
+
 		return
 	}
 
@@ -30,23 +32,19 @@ func main() {
 	kubeclient, err := kubernetes.NewForConfig(k8sconfig)
 	if err != nil {
 		mainLog.Error(err)
+
 		return
 	}
-
-	// manager, err := capture.NewCaptureManager(kubeclient, "/tmp/captures/")
-	// if err != nil {
-	// 	mainLog.Error(err)
-	// 	return
-	// }
 
 	server := server.NewServer(kubeclient, "./outputs/")
 
-	fmt.Println(server.GetKptures())
 	err = server.RegisterK8sAgents()
 	if err != nil {
 		mainLog.Error(err)
+
 		return
 	}
+
 	server.Start()
 }
 
