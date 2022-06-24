@@ -2,6 +2,6 @@
 .devspace/
 *.gzip
 *.tar
-./outputs/
+outputs/
 .vscode/*.log
 .vscode/extensions.json

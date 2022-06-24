@@ -16,14 +16,20 @@ const (
 )
 
 type Info struct {
-	Name      string  `json:"name,omitempty"`
-	Namespace string  `json:"namespace,omitempty"`
-	Type      Type    `json:"system,omitempty"`
-	TargetURL string  `json:"targetUrl,omitempty"`
-	Status    Status  `json:"status,omitempty"`
-	Errors    []error `json:"errors,omitempty"`
+	Metadata Metadata `json:"metadata"`
+	Status   Status   `json:"status"`
+	Errors   []string `json:"errors,omitempty"`
+	PacketNb uint64   `json:"packetNb"`
+}
+
+type Metadata struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Type      Type   `json:"system"`
+	TargetURL string `json:"targetUrl"`
 }
 
 const (
 	bufChanSize int = 1024
+	errChanSize int = 1000
 )

@@ -1,11 +1,22 @@
 definitions:
   agent.Info:
     properties:
+      errors:
+        items:
+          type: string
+        type: array
+      metadata:
+        $ref: '#/definitions/agent.Metadata'
+      packetNb:
+        type: integer
+      status:
+        type: string
+    type: object
+  agent.Metadata:
+    properties:
       name:
         type: string
       namespace:
-        type: string
-      status:
         type: string
       system:
         type: string
@@ -21,6 +32,10 @@ definitions:
     type: object
   capture.Kpture:
     properties:
+      agents:
+        items:
+          $ref: '#/definitions/agent.Info'
+        type: array
       captureInfo:
         $ref: '#/definitions/capture.CaptureInfo'
       name:
@@ -51,6 +66,11 @@ definitions:
       kptureName:
         type: string
     type: object
+  server.serverError:
+    properties:
+      message:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact:
@@ -79,7 +99,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/server.serverError'
       summary: Get Agents
       tags:
       - agents
@@ -108,7 +128,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/server.serverError'
       summary: Start Kpture
       tags:
       - kptures
@@ -131,11 +151,11 @@ paths:
         "404":
           description: Not Found
           schema:
-            type: string
+            $ref: '#/definitions/server.serverError'
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/server.serverError'
       summary: Get kapture
       tags:
       - kptures
@@ -154,11 +174,11 @@ paths:
         "404":
           description: Not Found
           schema:
-            type: string
+            $ref: '#/definitions/server.serverError'
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/server.serverError'
       summary: Download kpture
       tags:
       - kptures
@@ -181,11 +201,11 @@ paths:
         "404":
           description: Not Found
           schema:
-            type: string
+            $ref: '#/definitions/server.serverError'
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/server.serverError'
       summary: Stop Kpture
       tags:
       - kptures
@@ -211,10 +231,14 @@ paths:
               type: string
           schema:
             $ref: '#/definitions/capture.Kpture'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/server.serverError'
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/server.serverError'
       summary: Start namespace kpture
       tags:
       - kptures kubernetes
@@ -235,7 +259,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/server.serverError'
       summary: Get enabled kubernetes namespaces
       tags:
       - kubernetes
@@ -254,7 +278,7 @@ paths:
         "404":
           description: Not Found
           schema:
-            type: string
+            $ref: '#/definitions/server.serverError'
         "500":
           description: Internal Server Error
           schema:

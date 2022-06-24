@@ -17,15 +17,16 @@ import (
 // CaptureSocket Represent a single target capture.
 type CaptureSocket struct {
 	logger    *logrus.Entry
-	errors    chan error
 	AgentInfo *Info
 }
 
-func NewCaptureSocket(info *Info) *CaptureSocket {
+// NewCaptureSocket creates a grpc agent client
+func NewCaptureSocket(m Metadata) *CaptureSocket {
 	c := &CaptureSocket{
-		logger:    logger.NewLogger("capture"),
-		AgentInfo: info,
-		errors:    make(chan error, 1000),
+		logger: logger.NewLogger("capture"),
+		AgentInfo: &Info{
+			Metadata: m,
+		},
 	}
 	c.HealthCheck()
 
@@ -45,14 +46,14 @@ func (c *CaptureSocket) Packets(
 
 	pkch := make(chan gopacket.Packet, bufChanSize)
 
-	conn, err := grpc.Dial(c.AgentInfo.TargetURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(c.AgentInfo.Metadata.TargetURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return nil, errors.WithMessagef(err, "error dialing with target %s", c.AgentInfo.TargetURL)
+		return nil, errors.WithMessagef(err, "error dialing with target %s", c.AgentInfo.Metadata.Name)
 	}
 
 	socketCapture, err := capture.NewKptureClient(conn).Capture(captureCtx, request)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "error starting capture %s", c.AgentInfo.Name)
+		return nil, errors.WithMessagef(err, "error starting capture %s", c.AgentInfo.Metadata.Name)
 	}
 
 	go func() {
@@ -65,6 +66,8 @@ func (c *CaptureSocket) Packets(
 			default:
 				packet, err := socketCapture.Recv()
 				if err != nil {
+					c.AgentInfo.Errors = append(c.AgentInfo.Errors, err.Error())
+
 					return
 				}
 
@@ -76,6 +79,7 @@ func (c *CaptureSocket) Packets(
 				}
 				pk := gopacket.NewPacket(packet.Data, layers.LayerTypeEthernet, gopacket.NoCopy)
 				pk.Metadata().CaptureInfo = info
+				c.AgentInfo.PacketNb++
 				pkch <- pk
 			}
 		}
@@ -85,15 +89,17 @@ func (c *CaptureSocket) Packets(
 }
 
 func (c *CaptureSocket) HealthCheck() {
-	conn, err := grpc.Dial(c.AgentInfo.TargetURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(c.AgentInfo.Metadata.TargetURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		c.AgentInfo.Status = StatusDown
+		c.AgentInfo.Errors = append(c.AgentInfo.Errors, err.Error())
 
 		return
 	}
 
 	if _, err := capture.NewKptureClient(conn).Health(context.Background(), &capture.Empty{}); err != nil {
 		c.AgentInfo.Status = StatusDown
+		c.AgentInfo.Errors = append(c.AgentInfo.Errors, err.Error())
 
 		return
 	}

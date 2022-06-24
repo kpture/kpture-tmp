@@ -35,9 +35,7 @@ func NewServer(kc *kubernetes.Clientset, storagePath string) *Server {
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
 	}))
 
-	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Format: "method=${method}, uri=${uri}, status=${status}\n",
-	}))
+	// e.Use(middleware.LoggerWithConfig(middleware.DefaultLoggerConfig))
 
 	serv := &Server{
 		Echo:        e,
@@ -81,14 +79,14 @@ func (s *Server) RegisterK8sAgents() error {
 	agents := []capture.Agent{}
 
 	for _, pod := range list.Items {
-		infos := agent.Info{
+		metadata := agent.Metadata{
 			Name:      pod.Name,
 			Namespace: pod.Namespace,
 			Type:      agent.TypeKubernetes,
 			TargetURL: pod.Status.PodIP + ":10000",
 		}
 
-		agents = append(agents, agent.NewCaptureSocket(&infos))
+		agents = append(agents, agent.NewCaptureSocket(metadata))
 	}
 
 	s.Agents = agents

@@ -97,7 +97,7 @@ func (k *Kpture) handleAgents(ctx context.Context, chans ...chan gopacket.Packet
 	for _, agent := range k.agents {
 		agentChan := make(chan gopacket.Packet, bufChanSize)
 
-		err := k.storePackets(filepath.Join(k.basePath, agent.Info().Name), agent.Info().Name, agentChan)
+		err := k.storePackets(filepath.Join(k.basePath, agent.Info().Metadata.Name), agent.Info().Metadata.Name, agentChan)
 		if err != nil {
 			panic(err)
 		}

@@ -18,7 +18,7 @@ import (
 // @Description  Get Agents
 // @Produce      json
 // @Tags         agents
-// @Failure      500  {string}  string
+// @Failure      500  {object}  serverError
 // @Success      200  {object}  []agent.Info
 // @Router       /api/v1/agents [get]
 func (s *Server) getAgents(c echo.Context) error {
@@ -27,7 +27,9 @@ func (s *Server) getAgents(c echo.Context) error {
 	resp := []*agent.Info{}
 
 	if err := s.RegisterK8sAgents(); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, errors.WithMessage(err, "could not fetch k8s agents"))
+		sErr := serverError{errors.WithMessage(err, "could not fetch k8s agents").Error()}
+
+		return echo.NewHTTPError(http.StatusInternalServerError, sErr)
 	}
 
 	for _, agent := range s.Agents {
@@ -58,41 +60,48 @@ type AgentsRequest []struct {
 // @Produce      json
 // @Tags         kptures kubernetes
 // @Param        data  body      KptureNamespaceRequest  true  "namespace for capture"
-// @Failure      500  {string}  string
+// @Failure      500  {object}  serverError
+// @Failure      400  {object}  serverError
 // @Success      200   {object}  capture.Kpture
 // @Header       200   {string}  Websocket  ""
 // @Router       /api/v1/kpture/k8s/namespace [post]
 func (s *Server) startNamespacedKpture(c echo.Context) error {
-	c.Request().Header.Set(echo.HeaderXRequestID, "startNamespacedKpture")
+	s.logger.Debug("startNamespacedKpture")
 
 	u := &KptureNamespaceRequest{}
 	if err := c.Bind(u); err != nil {
 		s.logger.Errorf("error binding request: %v", err)
+		sErr := serverError{errors.WithMessage(err, "cannot bind http request body").Error()}
 
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		return echo.NewHTTPError(http.StatusBadRequest, sErr)
 	}
 
 	if u.KptureName == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "kpture name is empty")
+		sErr := serverError{errors.New("invalid kptureName").Error()}
+
+		return echo.NewHTTPError(http.StatusBadRequest, sErr)
 	}
 
 	agents := []capture.Agent{}
 
 	for _, agent := range s.Agents {
-		if agent.Info().Namespace == u.KptureNamespace {
+		if agent.Info().Metadata.Namespace == u.KptureNamespace {
 			agents = append(agents, agent)
 		}
 	}
 
 	if len(agents) == 0 {
-		return echo.NewHTTPError(http.StatusBadRequest, "no agents in namespace "+u.KptureNamespace)
+		sErr := serverError{errors.New(fmt.Sprintf("no agent in namesapce %s", u.KptureNamespace)).Error()}
+
+		return echo.NewHTTPError(http.StatusBadRequest, sErr)
 	}
 
 	k, err := s.StartKpture(u.KptureName, agents)
 	if err != nil {
 		s.logger.Errorf("error starting capture: %v", err)
+		sErr := serverError{errors.WithMessage(err, "error starting kpture").Error()}
 
-		return c.JSON(http.StatusInternalServerError, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, sErr)
 	}
 
 	return c.JSON(http.StatusOK, k)
@@ -103,11 +112,11 @@ func (s *Server) startNamespacedKpture(c echo.Context) error {
 // @Accept       json
 // @Produce      json
 // @Tags         kubernetes
-// @Failure      500  {string}  string
+// @Failure      500  {object}  serverError
 // @Success      200   {object}  []string
 // @Router       /api/v1/kpture/k8s/namespaces [GET]
 func (s *Server) getKubernetesEnabledNs(c echo.Context) error {
-	c.Request().Header.Set(echo.HeaderXRequestID, "getKubernetesEnabledNs")
+	s.logger.Debug("getKubernetesEnabledNs")
 
 	namespaces := []string{}
 	label := fmt.Sprintf("%s=%s", mutation.NameSpaceSelectorLabel, mutation.NameSpaceSelectorValue)
@@ -116,7 +125,9 @@ func (s *Server) getKubernetesEnabledNs(c echo.Context) error {
 
 	ns, err := nsCli.List(c.Request().Context(), opts)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, errors.WithMessage(err, "could not fetch namespaces from k8s api"))
+		sErr := serverError{errors.WithMessage(err, "could not fetch kubernetes api").Error()}
+
+		return c.JSON(http.StatusInternalServerError, sErr)
 	}
 
 	for _, currns := range ns.Items {
@@ -132,26 +143,27 @@ func (s *Server) getKubernetesEnabledNs(c echo.Context) error {
 // @Produce      json
 // @Tags         kptures
 // @Param        data  body      KptureRequest  true  "selected agents for capture"
-// @Failure      500  {string}  string
+// @Failure      500  {object}  serverError
 // @Success      200   {object}  capture.Kpture
 // @Header       200   {string}  Websocket  ""
 // @Router       /api/v1/kpture [post]
 func (s *Server) startKpture(c echo.Context) error {
-	c.Request().Header.Set(echo.HeaderXRequestID, "startkpture")
+	s.logger.Debug("startKpture")
 
 	u := &KptureRequest{}
 
 	if err := c.Bind(u); err != nil {
 		s.logger.Errorf("error binding request: %v", err)
+		sErr := serverError{errors.WithMessage(err, "cannot bind request").Error()}
 
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		return echo.NewHTTPError(http.StatusBadRequest, sErr)
 	}
 
 	agents := []capture.Agent{}
 
 	for _, pod := range u.AgentsRequest {
 		for _, agent := range s.Agents {
-			if agent.Info().Name == pod.Name && agent.Info().Namespace == pod.Namespace {
+			if agent.Info().Metadata.Name == pod.Name && agent.Info().Metadata.Namespace == pod.Namespace {
 				agents = append(agents, agent)
 			}
 		}
@@ -160,8 +172,9 @@ func (s *Server) startKpture(c echo.Context) error {
 	k, err := s.StartKpture(u.KptureName, agents)
 	if err != nil {
 		s.logger.Errorf("error starting capture: %v", err)
+		sErr := serverError{errors.WithMessage(err, "error starting kpture").Error()}
 
-		return c.JSON(http.StatusInternalServerError, err)
+		return c.JSON(http.StatusInternalServerError, sErr)
 	}
 
 	return c.JSON(http.StatusOK, k)
@@ -172,17 +185,20 @@ func (s *Server) startKpture(c echo.Context) error {
 // @Produce      json
 // @Tags         kptures
 // @Param        uuid  path      string  true  "capture uuid"
-// @Failure      500   {string}  string
-// @Failure      404  {string}  string
+// @Failure      500   {object}  serverError
+// @Failure      404  {object}  serverError
 // @Success      200   {object}  capture.Kpture
 // @Router       /api/v1/kpture/{uuid}/stop [put]
 func (s *Server) stopKpture(c echo.Context) error {
-	c.Request().Header.Set(echo.HeaderXRequestID, "StopPodCapture")
+	s.logger.Debug("stopKpture")
+
 	uuid := c.Param("uuid")
 
 	k := s.GetKpture(uuid)
 	if k == nil {
-		return c.JSON(http.StatusNotFound, "capture not found")
+		sErr := serverError{errors.New("capture not found").Error()}
+
+		return c.JSON(http.StatusNotFound, sErr)
 	}
 
 	if err := k.Stop(); err != nil {
@@ -197,20 +213,25 @@ func (s *Server) stopKpture(c echo.Context) error {
 // @Produce      json
 // @Tags         kptures
 // @Param        uuid  path      string  true  "capture uuid"
-// @Failure      500   {string}  string
-// @Failure      404   {string}  string
+// @Failure      500   {object}  serverError
+// @Failure      404   {object}  serverError
 // @Router       /api/v1/kpture/{uuid}/download [get]
 func (s *Server) downLoadKpture(c echo.Context) error {
-	c.Request().Header.Set(echo.HeaderXRequestID, "DownLoadCapture")
+	s.logger.Debug("downloadKpture")
+
 	uuid := c.Param("uuid")
 
 	kpture := s.GetKpture(uuid)
 	if kpture == nil {
-		return c.JSON(http.StatusNotFound, "capture not found")
+		sErr := serverError{errors.New("capture not found").Error()}
+
+		return c.JSON(http.StatusNotFound, sErr)
 	}
 
 	if kpture.Status != capture.KptureStatusTerminated {
-		return c.JSON(http.StatusBadRequest, "capture not finished")
+		sErr := serverError{errors.New("capture is running").Error()}
+
+		return c.JSON(http.StatusBadRequest, sErr)
 	}
 
 	return c.Redirect(http.StatusMovedPermanently, filepath.Join("/captures", kpture.UUID, kpture.Name+".tar"))
@@ -221,17 +242,20 @@ func (s *Server) downLoadKpture(c echo.Context) error {
 // @Produce      json
 // @Tags         kptures
 // @Param        uuid  path      string  true  "capture uuid"
-// @Failure      500   {string}  string
-// @Failure      404   {string}  string
+// @Failure      500   {object}  serverError
+// @Failure      404   {object}  serverError
 // @Success      200   {object}  capture.Kpture
 // @Router       /api/v1/kpture/{uuid} [get]
 func (s *Server) getKpture(c echo.Context) error {
-	c.Request().Header.Set(echo.HeaderXRequestID, "DownLoadCapture")
+	s.logger.Debug("getKpture")
+
 	uuid := c.Param("uuid")
 	kpture := s.GetKpture(uuid)
 
 	if kpture == nil {
-		return c.JSON(http.StatusNotFound, "capture not found")
+		sErr := serverError{errors.New("capture not found").Error()}
+
+		return c.JSON(http.StatusNotFound, sErr)
 	}
 
 	return c.JSON(http.StatusOK, kpture)
@@ -242,9 +266,11 @@ func (s *Server) getKpture(c echo.Context) error {
 // @Tags         kptures
 // @Produce      json
 // @Failure      500   {string}  string
-// @Failure      404   {string}  string
+// @Failure      404   {object}  serverError
 // @Success      200  {object}  map[string]capture.Kpture
 // @Router       /api/v1/kptures [get]
 func (s *Server) getKptures(c echo.Context) error {
+	s.logger.Debug("getKptures")
+
 	return c.JSON(http.StatusOK, s.kptures)
 }
