@@ -1,5 +1,0 @@
-make --dry-run --always-make --keep-going --print-directory
-make: Entering directory `/Users/stephaneguillemot/Documents/dev/tls'
-go install github.com/swaggo/swag/cmd/swag@latest
-make: Leaving directory `/Users/stephaneguillemot/Documents/dev/tls'
- 
