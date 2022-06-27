@@ -11,8 +11,9 @@ const (
 type Status string
 
 const (
-	StatusUP   Status = "up"
-	StatusDown Status = "down"
+	StatusUP     Status = "up"
+	StatusDown   Status = "down"
+	StatusUnkown Status = "unknown"
 )
 
 type Info struct {
@@ -31,5 +32,4 @@ type Metadata struct {
 
 const (
 	bufChanSize int = 1024
-	errChanSize int = 1000
 )

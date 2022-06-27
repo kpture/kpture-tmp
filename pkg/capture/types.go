@@ -3,6 +3,7 @@ package capture
 type KptureStatus string
 
 const (
+	KptureStatusNotStarted KptureStatus = "not_started"
 	KptureStatusRunning    KptureStatus = "running"
 	KptureStatusStopped    KptureStatus = "stopped"
 	KptureStatusWriting    KptureStatus = "writing"

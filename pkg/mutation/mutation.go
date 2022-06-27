@@ -39,7 +39,7 @@ func createMutationConfig(caCert *bytes.Buffer) error {
 	_, err = admclient.
 		Create(context.Background(), mutateconfig, metav1.CreateOptions{})
 
-	if err != nil && k8serr.IsAlreadyExists(err) == false {
+	if err != nil && !k8serr.IsAlreadyExists(err) {
 		return errors.WithMessage(err, "could not create admission configuration")
 	}
 

@@ -23,7 +23,7 @@ definitions:
       targetUrl:
         type: string
     type: object
-  capture.CaptureInfo:
+  capture.Info:
     properties:
       packetNb:
         type: integer
@@ -37,22 +37,28 @@ definitions:
           $ref: '#/definitions/agent.Info'
         type: array
       captureInfo:
-        $ref: '#/definitions/capture.CaptureInfo'
+        $ref: '#/definitions/capture.Info'
       name:
         type: string
+      profilName:
+        type: string
+      startTime:
+        type: string
       status:
+        type: string
+      stopTime:
         type: string
       uuid:
         type: string
     type: object
-  server.KptureNamespaceRequest:
+  server.kptureNamespaceRequest:
     properties:
       kptureName:
         type: string
       kptureNamespace:
         type: string
     type: object
-  server.KptureRequest:
+  server.kptureRequest:
     properties:
       agentsRequest:
         items:
@@ -94,7 +100,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/agent.Info'
+              $ref: '#/definitions/agent.Metadata'
             type: array
         "500":
           description: Internal Server Error
@@ -114,7 +120,7 @@ paths:
         name: data
         required: true
         schema:
-          $ref: '#/definitions/server.KptureRequest'
+          $ref: '#/definitions/server.kptureRequest'
       produces:
       - application/json
       responses:
@@ -220,7 +226,7 @@ paths:
         name: data
         required: true
         schema:
-          $ref: '#/definitions/server.KptureNamespaceRequest'
+          $ref: '#/definitions/server.kptureNamespaceRequest'
       produces:
       - application/json
       responses:
@@ -241,7 +247,7 @@ paths:
             $ref: '#/definitions/server.serverError'
       summary: Start namespace kpture
       tags:
-      - kptures kubernetes
+      - kubernetes
   /api/v1/kpture/k8s/namespaces:
     get:
       consumes:
@@ -286,4 +292,59 @@ paths:
       summary: Get kaptures
       tags:
       - kptures
+  /api/v1/profile/{profileName}:
+    post:
+      description: Create profile
+      parameters:
+      - description: profileName
+        in: path
+        name: profileName
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.serverError'
+      summary: Create profile
+      tags:
+      - profiles
+  /api/v1/profiles:
+    get:
+      description: Get profiles
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.serverError'
+      summary: Get profiles
+      tags:
+      - profiles
+  /api/v1/wireshark/hostfile:
+    get:
+      description: Get hostfile
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.serverError'
+      summary: Get hostfile
+      tags:
+      - wireshark
 swagger: "2.0"

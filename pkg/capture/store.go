@@ -16,10 +16,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (k *Kpture) storePackets(basepath string, name string, ch chan gopacket.Packet) error {
+func (k *Kpture) storePackets(basepath string, name string, channel chan gopacket.Packet) error {
 	err := os.MkdirAll(basepath, fs.ModePerm)
 	if err != nil {
-		return err
+		return errors.WithMessage(err, "could not create directory")
 	}
 
 	location := filepath.Join(basepath, name) + ".pcap"
@@ -29,16 +29,16 @@ func (k *Kpture) storePackets(basepath string, name string, ch chan gopacket.Pac
 		return errors.WithMessage(err, "error creating file")
 	}
 
-	w := pcapgo.NewWriter(file)
+	pcapWriter := pcapgo.NewWriter(file)
 
-	err = w.WriteFileHeader(pcapFileHeader, layers.LinkTypeEthernet)
+	err = pcapWriter.WriteFileHeader(pcapFileHeader, layers.LinkTypeEthernet)
 	if err != nil {
-		return err
+		return errors.WithMessage(err, "could not write pcap file header")
 	}
 
 	go func() {
-		for packet := range ch {
-			err := w.WritePacket(packet.Metadata().CaptureInfo, packet.Data())
+		for packet := range channel {
+			err := pcapWriter.WritePacket(packet.Metadata().CaptureInfo, packet.Data())
 			if err != nil {
 				k.logger.Error(errors.WithMessage(err, "could not write packet"))
 			}
@@ -51,77 +51,74 @@ func (k *Kpture) storePackets(basepath string, name string, ch chan gopacket.Pac
 }
 
 func (k *Kpture) createTar() (*bytes.Buffer, error) {
-	err := os.MkdirAll(filepath.Join(k.archivePath, k.UUID), fs.ModePerm)
+	err := os.MkdirAll(filepath.Join(k.archivePath, k.ProfileName, k.UUID), fs.ModePerm)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "could not create tar directory")
 	}
 
 	buf := new(bytes.Buffer)
-	tw := tar.NewWriter(buf)
+	tarWriter := tar.NewWriter(buf)
 
 	// walk through every file in the folder
-	err = filepath.Walk(k.basePath, func(file string, fi os.FileInfo, err error) error {
+	err = filepath.Walk(k.basePath, func(file string, fileInfo os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
 		var header *tar.Header // generate tar header
-		header, err = tar.FileInfoHeader(fi, file)
+		header, err = tar.FileInfoHeader(fileInfo, file)
 		if err != nil {
-			return err
+			return errors.WithMessage(err, "could not create tar info header")
 		}
-		newStr := strings.Replace(file, filepath.Join(os.TempDir(), k.UUID), "", -1)
-
-		if strings.HasPrefix(newStr, "/") {
-			newStr = strings.TrimPrefix(newStr, "/")
-		}
+		newStr := strings.ReplaceAll(file, filepath.Join(os.TempDir(), k.ProfileName, k.UUID), "")
+		newStr = strings.TrimPrefix(newStr, "/")
 
 		header.Name = newStr
 
 		// write header
-		if err := tw.WriteHeader(header); err != nil {
-			return err
+		if err := tarWriter.WriteHeader(header); err != nil {
+			return errors.WithMessage(err, "could not write tar header")
 		}
 		// if not a dir, write file content
-		if !fi.IsDir() {
+		if !fileInfo.IsDir() {
 			data, err := os.Open(file)
 			if err != nil {
-				return err
+				return errors.WithMessage(err, "error opening pcap file")
 			}
-			if _, err := io.Copy(tw, data); err != nil {
-				return err
+			if _, err := io.Copy(tarWriter, data); err != nil {
+				return errors.WithMessage(err, "error copying file info")
 			}
 		}
 
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "error walking recursively in directory")
 	}
 
-	if err := tw.Close(); err != nil {
-		return nil, err
+	if err := tarWriter.Close(); err != nil {
+		return nil, errors.WithMessage(err, "error closing tarWriter")
 	}
 
-	// if err := zr.Close(); err != nil {
-	// 	return nil, err
-	// }
-
-	return buf, err
+	return buf, nil
 }
 
 func (k *Kpture) writeFile(buf *bytes.Buffer) error {
-	location := filepath.Join(k.archivePath, k.UUID, k.Name+".tar")
+	location := filepath.Join(k.archivePath, k.ProfileName, k.UUID, k.Name+".tar")
 
-	fileToWrite, err := os.OpenFile(location, os.O_CREATE|os.O_RDWR, os.FileMode(fs.ModePerm))
+	fileToWrite, err := os.OpenFile(location, os.O_CREATE|os.O_RDWR, fs.ModePerm)
 	if err != nil {
-		return err
+		return errors.WithMessage(err, "error writing file")
 	}
 
 	if _, err := io.Copy(fileToWrite, buf); err != nil {
-		return err
+		return errors.WithMessage(err, "error copying pcap buffer to file")
 	}
 
-	return os.RemoveAll(k.basePath)
+	if err := os.RemoveAll(k.basePath); err != nil {
+		return errors.WithMessage(err, "error removing temporary file ")
+	}
+
+	return nil
 }
 
 func (k *Kpture) MarshalDescription() error {
@@ -130,9 +127,9 @@ func (k *Kpture) MarshalDescription() error {
 		return errors.WithMessage(err, "could not mashal kpture to bytes")
 	}
 
-	location := filepath.Join(k.archivePath, k.UUID, "descriptor.json")
+	location := filepath.Join(k.archivePath, k.ProfileName, k.UUID, "descriptor.json")
 
-	fileToWrite, err := os.OpenFile(location, os.O_CREATE|os.O_RDWR, os.FileMode(fs.ModePerm))
+	fileToWrite, err := os.OpenFile(location, os.O_CREATE|os.O_RDWR, fs.ModePerm)
 	if err != nil {
 		panic(err)
 	}

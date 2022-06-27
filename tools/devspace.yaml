@@ -44,7 +44,7 @@ dev:
     localSubPath: ../
     uploadExcludePaths:
     - Dockerfile
-   # arch: arm64
+    arch: arm64
   # `dev.terminal` tells DevSpace to open a terminal as a last step during `devspace dev`
   terminal:
     imageSelector: ${IMAGE} # Select the Pod that runs our `${IMAGE}`

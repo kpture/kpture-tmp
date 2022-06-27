@@ -1,21 +1,24 @@
 {
-    "go.lintOnSave": "workspace",
-    "go.formatTool": "gofumpt",
+    "go.lintOnSave": "package",
+    "go.formatFlags": ["-e"],
     "go.lintTool": "golangci-lint",
-    
+    "go.useLanguageServer": true,
+    "gopls": {
+        "formatting.gofumpt": true,
+    },
+
     "go.lintFlags": [
         "--enable-all",
         "--disable",
         "gci", //Disable GCI , conflict with gofumpimport
         "--disable",
         "godot",
-        "--fast"
+        "--disable",
+        "gofumpt",
+        "--disable",
+        "exhaustruct",
+        "--disable",
+        "exhaustivestruct",
+        // "--fast"
     ],
-    "go.addTags": {
-        "tags": "yaml",
-        "promptForTags": false,
-        "transform": "camelcase",
-        "template": ""
-    },
-    "go.useLanguageServer": true,
 }

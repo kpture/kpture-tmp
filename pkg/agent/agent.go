@@ -2,8 +2,9 @@ package agent
 
 import (
 	"context"
-	"newproxy/pkg/logger"
 	"time"
+
+	"newproxy/pkg/logger"
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -22,15 +23,18 @@ type CaptureSocket struct {
 
 // NewCaptureSocket creates a grpc agent client
 func NewCaptureSocket(m Metadata) *CaptureSocket {
-	c := &CaptureSocket{
+	capture := &CaptureSocket{
 		logger: logger.NewLogger("capture"),
 		AgentInfo: &Info{
 			Metadata: m,
+			Status:   StatusUnkown,
+			Errors:   []string{},
+			PacketNb: 0,
 		},
 	}
-	c.HealthCheck()
+	capture.HealthCheck()
 
-	return c
+	return capture
 }
 
 func (c *CaptureSocket) Info() *Info {
@@ -66,12 +70,11 @@ func (c *CaptureSocket) Packets(
 			default:
 				packet, err := socketCapture.Recv()
 				if err != nil {
-					c.AgentInfo.Errors = append(c.AgentInfo.Errors, err.Error())
-
 					return
 				}
 
 				info := gopacket.CaptureInfo{
+					AncillaryData:  []interface{}{},
 					Timestamp:      time.Now(),
 					CaptureLength:  int(packet.CaptureInfo.CaptureLength),
 					Length:         int(packet.CaptureInfo.Length),

@@ -36,7 +36,10 @@ func main() {
 		return
 	}
 
-	server := server.NewServer(kubeclient, "./outputs/")
+	server, err := server.NewServer(kubeclient, "./outputs/")
+	if err != nil {
+		mainLog.Error(err)
+	}
 
 	err = server.RegisterK8sAgents()
 	if err != nil {

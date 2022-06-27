@@ -5,8 +5,6 @@ swagger:
 	swag fmt
 fmt:
 	find . -name "*.go" | xargs -L1 gofumpt -e -w
-	find . -name "*.go" | xargs -L1 gofumports -w
-
 
 
 dev_devspace:
