@@ -111,22 +111,6 @@ func (s *Server) RegisterK8sAgents() error {
 	return nil
 }
 
-func (s *Server) StopKpture(name string) error {
-	if k, ok := s.kptures[name]; ok {
-		return errors.WithMessage(k.Stop(), "error stopping kpture")
-	}
-
-	return errors.New("kpture not found")
-}
-
-func (s *Server) GetKpture(name string) *capture.Kpture {
-	return s.kptures[name]
-}
-
-func (s *Server) GetKptures() map[string]*capture.Kpture {
-	return s.kptures
-}
-
 func (s *Server) LoadCaptures() error {
 	files, err := ioutil.ReadDir(s.storagePath)
 	if err != nil {

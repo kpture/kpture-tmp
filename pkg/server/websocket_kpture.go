@@ -13,8 +13,14 @@ func (s *Server) kptureWebSocket(context echo.Context) error {
 	s.logger.Debug("getKpture")
 
 	uuid := context.Param("uuid")
+	profileName := context.Param("profileName")
 
-	kpture := s.GetKpture(uuid)
+	profile, ok := s.profiles[profileName]
+	if !ok {
+		return errors.New("profile not found")
+	}
+
+	kpture := profile.kptures[uuid]
 	if kpture == nil {
 		return errors.New("kpture not found")
 	}

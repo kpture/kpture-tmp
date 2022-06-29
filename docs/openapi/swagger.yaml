@@ -9,14 +9,14 @@ definitions:
         $ref: '#/definitions/agent.Metadata'
       packetNb:
         type: integer
-      status:
-        type: string
     type: object
   agent.Metadata:
     properties:
       name:
         type: string
       namespace:
+        type: string
+      status:
         type: string
       system:
         type: string

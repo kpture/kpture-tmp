@@ -27,7 +27,6 @@ func NewCaptureSocket(m Metadata) *CaptureSocket {
 		logger: logger.NewLogger("capture"),
 		AgentInfo: &Info{
 			Metadata: m,
-			Status:   StatusUnkown,
 			Errors:   []string{},
 			PacketNb: 0,
 		},
@@ -94,18 +93,18 @@ func (c *CaptureSocket) Packets(
 func (c *CaptureSocket) HealthCheck() {
 	conn, err := grpc.Dial(c.AgentInfo.Metadata.TargetURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		c.AgentInfo.Status = StatusDown
+		c.AgentInfo.Metadata.Status = StatusDown
 		c.AgentInfo.Errors = append(c.AgentInfo.Errors, err.Error())
 
 		return
 	}
 
 	if _, err := capture.NewKptureClient(conn).Health(context.Background(), &capture.Empty{}); err != nil {
-		c.AgentInfo.Status = StatusDown
+		c.AgentInfo.Metadata.Status = StatusDown
 		c.AgentInfo.Errors = append(c.AgentInfo.Errors, err.Error())
 
 		return
 	}
 
-	c.AgentInfo.Status = StatusUP
+	c.AgentInfo.Metadata.Status = StatusUP
 }

@@ -18,7 +18,6 @@ const (
 
 type Info struct {
 	Metadata Metadata `json:"metadata"`
-	Status   Status   `json:"status"`
 	Errors   []string `json:"errors,omitempty"`
 	PacketNb uint64   `json:"packetNb"`
 }
@@ -28,6 +27,7 @@ type Metadata struct {
 	Namespace string `json:"namespace"`
 	Type      Type   `json:"system"`
 	TargetURL string `json:"targetUrl"`
+	Status    Status `json:"status"`
 }
 
 const (
