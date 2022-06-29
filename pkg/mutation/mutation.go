@@ -24,11 +24,7 @@ func createMutationConfig(caCert *bytes.Buffer) error {
 		MutatingWebhookConfigurations()
 
 	wh, err := admclient.Get(context.Background(), webHookName, metav1.GetOptions{})
-	if err != nil {
-		return errors.WithMessage(err, "could not create admission configuration")
-	}
-
-	if wh != nil {
+	if err == nil && wh != nil {
 		if err := admclient.Delete(context.Background(), webHookName, metav1.DeleteOptions{}); err != nil {
 			return errors.WithMessage(err, "could not delete admission configuration")
 		}

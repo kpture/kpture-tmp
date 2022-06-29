@@ -16,7 +16,7 @@ metadata:
   name: kpture-rbac-devspace
 subjects:
 - kind: ServiceAccount
-  name: {{ include "tls.serviceAccountName" . }}
+  name: {{ include "kpture.serviceAccountName" . }}
   namespace: {{.Release.Namespace}}
 roleRef:
   kind: ClusterRole

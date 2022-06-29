@@ -7,7 +7,7 @@ vars:
 
 # `deployments` tells DevSpace how to deploy this project
 deployments:
-- name: tls
+- name: kpture
   # This deployment uses `helm` but you can also define `kubectl` deployments or kustomizations
   helm:
     # We are deploying this project with the Helm chart you provided
@@ -44,7 +44,7 @@ dev:
     localSubPath: ../
     uploadExcludePaths:
     - Dockerfile
-    arch: arm64
+      #arch: arm64
   # `dev.terminal` tells DevSpace to open a terminal as a last step during `devspace dev`
   terminal:
     imageSelector: ${IMAGE} # Select the Pod that runs our `${IMAGE}`

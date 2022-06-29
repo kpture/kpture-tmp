@@ -38,10 +38,10 @@ func getserverCertificate() *x509.Certificate {
 	const serialNumberSize = 1658
 
 	return &x509.Certificate{
-		DNSNames:     []string{"*.kpture.svc", "tls.kpture.svc"},
+		DNSNames:     []string{"*.kpture.svc", "kpture.kpture.svc"},
 		SerialNumber: big.NewInt(serialNumberSize),
 		Subject: pkix.Name{
-			CommonName:   "tls.kpture.svc",
+			CommonName:   "kpture.kpture.svc",
 			Organization: []string{"kpture.io"},
 		},
 		NotBefore:    time.Now(),
@@ -70,7 +70,7 @@ func getCACertificate() *x509.Certificate {
 }
 
 const (
-	NameSpaceSelectorLabel = "kpture-agent"
+	NameSpaceSelectorLabel = "kpture.agent"
 	NameSpaceSelectorValue = "enabled"
 )
 
@@ -99,11 +99,11 @@ func getMutationConfig(cacerts []byte) *admissionregistrationv1.MutatingWebhookC
 			SideEffects:             &se,
 			AdmissionReviewVersions: []string{"v1"},
 			NamespaceSelector:       getNamespaceLabelSelector(),
-			Name:                    "tls.kpture.svc",
+			Name:                    "kpture.kpture.svc",
 			ClientConfig: admissionregistrationv1.WebhookClientConfig{
 				CABundle: cacerts, // CA bundle created earlier
 				Service: &admissionregistrationv1.ServiceReference{
-					Name:      "tls",
+					Name:      "kpture",
 					Namespace: "kpture",
 					Path:      &path,
 				},

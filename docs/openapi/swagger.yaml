@@ -109,6 +109,52 @@ paths:
       summary: Get Agents
       tags:
       - agents
+  /api/v1/k8s/namespaces:
+    get:
+      consumes:
+      - application/json
+      description: Get all kubernetes namespaces
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.serverError'
+      summary: Get all kubernetes namespaces
+      tags:
+      - kubernetes
+  /api/v1/k8s/namespaces/{namespace}/inject:
+    post:
+      consumes:
+      - application/json
+      description: Inject annotation webhook
+      parameters:
+      - description: namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ""
+        "304":
+          description: ""
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.serverError'
+      summary: Inject annotation webhook
+      tags:
+      - kubernetes
   /api/v1/kpture:
     post:
       consumes:

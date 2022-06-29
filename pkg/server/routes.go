@@ -12,6 +12,8 @@ func (s *Server) RegisterRoutes() {
 
 	s.Echo.POST("/api/v1/kpture/k8s/namespace", s.startNamespacedKpture)
 	s.Echo.GET("/api/v1/kpture/k8s/namespaces", s.getKubernetesEnabledNs)
+	s.Echo.GET("/api/v1/k8s/namespaces", s.getNamespaces)
+	s.Echo.POST("/api/v1/k8s/namespaces/:namespace/inject", s.injectNamespace)
 
 	s.Echo.GET("/api/v1/agents", s.getAgents)
 

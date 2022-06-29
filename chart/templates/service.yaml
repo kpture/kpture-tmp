@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "tls.fullname" . }}
+  name: {{ include "kpture.fullname" . }}
   labels:
-    {{- include "tls.labels" . | nindent 4 }}
+    {{- include "kpture.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -12,4 +12,4 @@ spec:
       protocol: TCP
       name: https
   selector:
-    {{- include "tls.selectorLabels" . | nindent 4 }}
+    {{- include "kpture.selectorLabels" . | nindent 4 }}

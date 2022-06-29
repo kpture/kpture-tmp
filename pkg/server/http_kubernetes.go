@@ -50,6 +50,95 @@ func (s *Server) getKubernetesEnabledNs(context echo.Context) error {
 	return nil
 }
 
+// @Summary      Get all kubernetes namespaces
+// @Description  Get all kubernetes namespaces
+// @Accept       json
+// @Produce      json
+// @Tags         kubernetes
+// @Failure      500  {object}  serverError
+// @Success      200  {object}  []string
+// @Router       /api/v1/k8s/namespaces [GET]
+func (s *Server) getNamespaces(context echo.Context) error {
+	s.logger.Debug("getKubernetesEnabledNs")
+
+	namespaces := []string{}
+	opts := v1.ListOptions{}
+	nsCli := s.kubeclient.CoreV1().Namespaces()
+
+	nsResponse, err := nsCli.List(context.Request().Context(), opts)
+	if err != nil {
+		sErr := serverError{errors.WithMessage(err, "could not fetch kubernetes api").Error()}
+
+		if err := context.JSON(http.StatusInternalServerError, sErr); err != nil {
+			return errors.WithMessage(err, "error writing http response")
+		}
+
+		return nil
+	}
+
+	for _, currns := range nsResponse.Items {
+		namespaces = append(namespaces, currns.Name)
+	}
+
+	if err := context.JSON(http.StatusOK, namespaces); err != nil {
+		return errors.WithMessage(err, "error writing http response")
+	}
+
+	return nil
+}
+
+// @Summary      Inject annotation webhook
+// @Description  Inject annotation webhook
+// @Accept       json
+// @Produce      json
+// @Param        namespace  path      string  true  "namespace"
+// @Tags         kubernetes
+// @Failure      500  {object}  serverError
+// @Success      304
+// @Success      200
+// @Router       /api/v1/k8s/namespaces/{namespace}/inject [POST]
+func (s *Server) injectNamespace(context echo.Context) error {
+	s.logger.Debug("injectNamespace")
+	ns := context.Param("namespace")
+
+	opts := v1.GetOptions{}
+	nsCli := s.kubeclient.CoreV1().Namespaces()
+
+	nsResponse, err := nsCli.Get(context.Request().Context(), ns, opts)
+	if err != nil {
+		sErr := serverError{errors.WithMessage(err, "could not fetch kubernetes api").Error()}
+
+		if err := context.JSON(http.StatusInternalServerError, sErr); err != nil {
+			return errors.WithMessage(err, "error writing http response")
+		}
+
+		return nil
+	}
+
+	if value, ok := nsResponse.ObjectMeta.Labels[mutation.NameSpaceSelectorLabel]; ok {
+		if value == mutation.NameSpaceSelectorValue {
+			if err := context.JSON(http.StatusNotModified, nil); err != nil {
+				return errors.WithMessage(err, "error writing http response")
+			}
+		}
+	}
+
+	nsResponse.ObjectMeta.Labels[mutation.NameSpaceSelectorLabel] = mutation.NameSpaceSelectorValue
+	_, updateErr := nsCli.Update(context.Request().Context(), nsResponse, v1.UpdateOptions{})
+
+	if updateErr != nil {
+		if err := context.JSON(http.StatusInternalServerError, updateErr); err != nil {
+			return errors.WithMessage(err, "error writing http response")
+		}
+	}
+
+	if err := context.JSON(http.StatusOK, nil); err != nil {
+		return errors.WithMessage(err, "error writing http response")
+	}
+
+	return nil
+}
+
 // @Summary      Start namespace kpture
 // @Description  Start namespace kpture
 // @Accept       json

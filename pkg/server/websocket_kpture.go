@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"net/http"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -25,7 +26,11 @@ func (s *Server) kptureWebSocket(context echo.Context) error {
 		return errors.New("kpture not found")
 	}
 
-	upgrader := websocket.Upgrader{}
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
 
 	webSocket, err := upgrader.Upgrade(context.Response(), context.Request(), nil)
 	if err != nil {
