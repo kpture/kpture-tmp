@@ -63,6 +63,7 @@ jobs:
           ./cr upload \
               --owner "$owner" \
               --git-repo "$repo" \
+              --release-notes-file "${{steps.build_changelog.outputs.changelog}}" \
               --token "${{ secrets.GITHUB_TOKEN }}" \
               --release-name-template "{{ .Version }}"
           # update index and push to github pages
@@ -73,7 +74,6 @@ jobs:
               --git-repo "$repo" \
               --token "${{ secrets.GITHUB_TOKEN }}" \
               --release-name-template "{{ .Version }}" \
-              --release-notes-file "${{steps.build_changelog.outputs.changelog}}" \
               --index-path ./index.yaml \
               --charts-repo https://$owner.github.io/$repo \
               --push
