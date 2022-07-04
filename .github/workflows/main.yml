@@ -1,7 +1,10 @@
-# name: Go
-# on:
-#   push:
-#     branches: [ main ]
-# jobs:
-#   build:
-#     uses: ./.github/workflows/build.yml
+name: Go
+
+on:
+  pull_request:
+   types: [opened, labeled, unlabeled, synchronize]
+
+   
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml

@@ -2,10 +2,10 @@
 name: Create Release
 on: [workflow_dispatch]
 jobs:
-  # build:
-  #   uses: ./.github/workflows/build.yml
+  build:
+    uses: ./.github/workflows/build.yml
   release:
-    # needs: build
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -20,24 +20,24 @@ jobs:
           RELEASE_BRANCHES: "main"
           # DRY_RUN: "true"
           DEFAULT_BUMP : "patch"
-      # - name: Set up QEMU
-      #   uses: docker/setup-qemu-action@v2
-      # - name: Login to DockerHub
-      #   uses: docker/login-action@v2
-      #   with:
-      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
-      #     password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
       - name: Checkout
         uses: actions/checkout@v3
-      # - uses: docker/setup-buildx-action@v2
-      #   id: buildx
-      # - name: Build and push
-      #   uses: docker/build-push-action@v3
-      #   with:
-      #     context: .
-      #     platforms: linux/amd64
-      #     push: true
-      #     tags: "kpture/kpture:${{ steps.bumptag.outputs.new_tag }}"
+      - uses: docker/setup-buildx-action@v2
+        id: buildx
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: "kpture/kpture:${{ steps.bumptag.outputs.new_tag }}"
       - name: Release Changelog Builder
         id: build_changelog
         uses: mikepenz/release-changelog-builder-action@v3.0.1
