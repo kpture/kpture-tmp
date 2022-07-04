@@ -52,19 +52,17 @@ jobs:
         uses: azure/setup-helm@v1
         with:
           version: v3.8.1
-
+      - name: Prepare Helm Chart
+        run: |
+          wget -qO ./yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          chmod a+x ./yq
+          ./yq e '.appVersion = \"${{ steps.bumptag.outputs.new_tag }}\" ' -i chart/Chart.yaml
+          ./yq e '.version = \"${{ steps.bumptag.outputs.new_tag }}\" ' -i chart/Chart.yaml
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.4.0
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      # - name: Package and upload helm chart
-      #   run: |
-      #     tag=${{ steps.bumptag.outputs.new_tag }}
-      #     #Download yq
-      #     wget -qO ./yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-      #     chmod a+x ./yq
-      #     ./yq e '.appVersion = \"${{ steps.bumptag.outputs.new_tag }}\" ' -i chart/Chart.yaml
-      #     ./yq e '.version = \"${{ steps.bumptag.outputs.new_tag }}\" ' -i chart/Chart.yaml
+
       #     # donwload helm chart releaser
       #     curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/v1.2.1/chart-releaser_1.2.1_linux_amd64.tar.gz"
       #     tar -xzf cr.tar.gz
