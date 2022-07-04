@@ -43,11 +43,11 @@ definitions:
       profilName:
         type: string
       startTime:
-        type: string
+        type: integer
       status:
         type: string
       stopTime:
-        type: string
+        type: integer
       uuid:
         type: string
     type: object
@@ -185,6 +185,30 @@ paths:
       tags:
       - kptures
   /api/v1/kpture/{uuid}:
+    delete:
+      description: Delete kapture
+      parameters:
+      - description: capture uuid
+        in: path
+        name: uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: ""
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/server.serverError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.serverError'
+      summary: Delete kapture
+      tags:
+      - kptures
     get:
       description: Get kapture
       parameters:
@@ -393,4 +417,7 @@ paths:
       summary: Get hostfile
       tags:
       - wireshark
+securityDefinitions:
+  BasicAuth:
+    type: basic
 swagger: "2.0"

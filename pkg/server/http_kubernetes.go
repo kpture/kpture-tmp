@@ -91,7 +91,7 @@ func (s *Server) getNamespaces(context echo.Context) error {
 // @Description  Inject annotation webhook
 // @Accept       json
 // @Produce      json
-// @Param        namespace  path      string  true  "namespace"
+// @Param        namespace  path  string  true  "namespace"
 // @Tags         kubernetes
 // @Failure      500  {object}  serverError
 // @Success      304
@@ -192,7 +192,7 @@ func (s *Server) startNamespacedKpture(context echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, sErr)
 	}
 
-	kpture, err := capture.NewKpture(kptureReq.KptureName, profile.Name, s.storagePath, agents)
+	kpture, err := capture.NewKpture(kptureReq.KptureName, profile.Name, s.storagePath, agents, s.kubeclient)
 	if err != nil {
 		s.logger.Errorf("error starting capture: %v", err)
 		sErr := serverError{errors.WithMessage(err, "error starting kpture").Error()}

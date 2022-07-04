@@ -5,8 +5,6 @@ swagger:
 	swag fmt
 fmt:
 	find . -name "*.go" | xargs -L1 gofumpt -e -w
-
-
 dev_devspace:
 	devspace --config ./tools/devspace.yaml dev
 purge_devspace:

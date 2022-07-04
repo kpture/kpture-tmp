@@ -15,6 +15,7 @@ import (
 	"github.com/kpture/agent/api/capture"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/kubernetes"
 )
 
 type Agent interface {
@@ -38,8 +39,10 @@ type Kpture struct {
 	logger      *logrus.Entry
 	stopCh      chan bool
 	basePath    string
-	StartTime   time.Time `json:"startTime,omitempty"`
-	StopTime    time.Time `json:"stopTime,omitempty"`
+	StartTime   int64 `json:"startTime,omitempty"`
+	StopTime    int64 `json:"stopTime,omitempty"`
+
+	kubeclient kubernetes.Interface
 }
 
 type Info struct {
@@ -47,7 +50,7 @@ type Info struct {
 	PacketNB int `json:"packetNb,omitempty"`
 }
 
-func NewKpture(kptureName, profileName, archivePath string, agents []Agent) (*Kpture, error) {
+func NewKpture(kptureName, profileName, archivePath string, agents []Agent, client kubernetes.Interface) (*Kpture, error) {
 	uuid := uuid.New().String()
 
 	err := os.MkdirAll(filepath.Join(os.TempDir(), uuid, kptureName), fs.ModePerm)
@@ -69,7 +72,8 @@ func NewKpture(kptureName, profileName, archivePath string, agents []Agent) (*Kp
 			Size:     0,
 			PacketNB: 0,
 		},
-		Status: KptureStatusError,
+		Status:     KptureStatusError,
+		kubeclient: client,
 	}
 
 	for _, currA := range agents {
@@ -109,7 +113,7 @@ func (k *Kpture) Start() {
 	}()
 
 	k.Status = KptureStatusRunning
-	k.StartTime = time.Now()
+	k.StartTime = time.Now().Unix()
 }
 
 func (k *Kpture) handleAgents(ctx context.Context, chans ...chan gopacket.Packet) {
@@ -154,10 +158,27 @@ func (k *Kpture) handleAgents(ctx context.Context, chans ...chan gopacket.Packet
 
 func (k *Kpture) Stop() error {
 	k.Status = KptureStatusStopped
-	k.StopTime = time.Now()
+	k.StopTime = time.Now().Unix()
 	k.stopCh <- true
 	k.logger.Debug("kpture stopped")
 	k.Status = KptureStatusWriting
+
+	for _, agent := range k.AgentsInfos {
+		k.storeLog(filepath.Join(k.basePath, agent.Metadata.Name), agent.Metadata.Name, agent.Metadata.Namespace)
+	}
+
+	logs, err := k.SortLogs()
+	if err != nil {
+		k.logger.Error(err)
+
+		return err
+	}
+
+	err = k.WriteLogs(logs)
+	if err != nil {
+		k.logger.Error(err)
+		return err
+	}
 
 	buf, err := k.createTar()
 	if err != nil {

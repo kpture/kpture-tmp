@@ -11,16 +11,17 @@ import (
 	"github.com/pkg/errors"
 )
 
-// @Summary      Start Kpture
-// @Description  Start Kpture
-// @Accept       json
+// @Summary                    Start Kpture
+// @Description                Start Kpture
+// @Accept                     json
 // @Produce      json
 // @Tags         kptures
-// @Param        data  body      kptureRequest  true  "selected agents for capture"
+// @Param                      data  body      kptureRequest  true  "selected agents for capture"
 // @Failure      500   {object}  serverError
-// @Success      200   {object}  capture.Kpture
-// @Header       200   {string}  Websocket  ""
-// @Router       /api/v1/kpture [post]
+// @Success                    200   {object}  capture.Kpture
+// @Header                     200   {string}  Websocket  ""
+// @Router                     /api/v1/kpture [post]
+// @securityDefinitions.basic  BasicAuth
 func (s *Server) startKpture(context echo.Context) error {
 	s.logger.Debug("startKpture")
 
@@ -53,7 +54,7 @@ func (s *Server) startKpture(context echo.Context) error {
 			}
 		}
 	}
-	kpture, err := capture.NewKpture(kptureReq.KptureName, profile.Name, s.storagePath, agents)
+	kpture, err := capture.NewKpture(kptureReq.KptureName, profile.Name, s.storagePath, agents, s.kubeclient)
 	if err != nil {
 		return errors.WithMessage(err, "error creating kpture")
 	}
@@ -78,15 +79,16 @@ func (s *Server) startKpture(context echo.Context) error {
 	return nil
 }
 
-// @Summary      Stop Kpture
-// @Description  Stop Kpture
-// @Produce      json
-// @Tags         kptures
+// @Summary                    Stop Kpture
+// @Description                Stop Kpture
+// @Produce                    json
+// @Tags                       kptures
 // @Param        uuid  path      string  true  "capture uuid"
-// @Failure      500   {object}  serverError
-// @Failure      404  {object}  serverError
-// @Success      200   {object}  capture.Kpture
-// @Router       /api/v1/kpture/{uuid}/stop [put]
+// @Failure                    500   {object}  serverError
+// @Failure      404   {object}  serverError
+// @Success                    200   {object}  capture.Kpture
+// @Router                     /api/v1/kpture/{uuid}/stop [put]
+// @securityDefinitions.basic  BasicAuth
 func (s *Server) stopKpture(context echo.Context) error {
 	s.logger.Debug("stopKpture")
 	uuid := context.Param("uuid")
@@ -112,7 +114,7 @@ func (s *Server) stopKpture(context echo.Context) error {
 
 		return nil
 	}
-	fmt.Println(*kpture)
+
 	if err := kpture.Stop(); err != nil {
 		return errors.WithMessage(err, "error stop kpture")
 	}
@@ -124,14 +126,15 @@ func (s *Server) stopKpture(context echo.Context) error {
 	return nil
 }
 
-// @Summary      Download kpture
-// @Description  Download kpture
-// @Produce      json
-// @Tags         kptures
-// @Param        uuid  path      string  true  "capture uuid"
-// @Failure      500   {object}  serverError
-// @Failure      404   {object}  serverError
-// @Router       /api/v1/kpture/{uuid}/download [get]
+// @Summary                    Download kpture
+// @Description                Download kpture
+// @Produce                    json
+// @Tags                       kptures
+// @Param                      uuid  path      string  true  "capture uuid"
+// @Failure                    500   {object}  serverError
+// @Failure                    404   {object}  serverError
+// @Router                     /api/v1/kpture/{uuid}/download [get]
+// @securityDefinitions.basic  BasicAuth
 func (s *Server) downLoadKpture(context echo.Context) error {
 	s.logger.Debug("downloadKpture")
 	uuid := context.Param("uuid")
@@ -178,15 +181,16 @@ func (s *Server) downLoadKpture(context echo.Context) error {
 	return nil
 }
 
-// @Summary      Get kapture
-// @Description  Get kapture
-// @Produce      json
-// @Tags         kptures
-// @Param        uuid  path      string  true  "capture uuid"
-// @Failure      500   {object}  serverError
-// @Failure      404   {object}  serverError
-// @Success      200   {object}  capture.Kpture
-// @Router       /api/v1/kpture/{uuid} [get]
+// @Summary                    Get kapture
+// @Description                Get kapture
+// @Produce                    json
+// @Tags                       kptures
+// @Param                      uuid  path      string  true  "capture uuid"
+// @Failure                    500   {object}  serverError
+// @Failure                    404   {object}  serverError
+// @Success                    200   {object}  capture.Kpture
+// @Router                     /api/v1/kpture/{uuid} [get]
+// @securityDefinitions.basic  BasicAuth
 func (s *Server) getKpture(context echo.Context) error {
 	s.logger.Debug("getKpture")
 
@@ -221,19 +225,71 @@ func (s *Server) getKpture(context echo.Context) error {
 	return nil
 }
 
-// @Summary      Get kaptures
-// @Description  Get kaptures
-// @Tags         kptures
-// @Produce      json
-// @Failure      500  {string}  string
-// @Failure      404   {object}  serverError
-// @Success      200  {object}  map[string]capture.Kpture
-// @Router       /api/v1/kptures [get]
+// @Summary      Delete kapture
+// @Description  Delete kapture
+// @Produce                    json
+// @Tags                       kptures
+// @Param                      uuid  path      string  true  "capture uuid"
+// @Failure                    500   {object}  serverError
+// @Failure                    404   {object}  serverError
+// @Success      204
+// @Router       /api/v1/kpture/{uuid} [delete]
+func (s *Server) deleteKpture(context echo.Context) error {
+	s.logger.Debug("getKpture")
+
+	uuid := context.Param("uuid")
+
+	profile, err := s.getProfile(context)
+	if err != nil {
+		sErr := serverError{"profile does not exist"}
+
+		if err := context.JSON(http.StatusNotFound, sErr); err != nil {
+			return errors.WithMessage(err, "could not write http response")
+		}
+
+		return err
+	}
+
+	kpture := profile.kptures[uuid]
+
+	if kpture == nil {
+		sErr := serverError{errors.New("capture not found").Error()}
+		if err := context.JSON(http.StatusNotFound, sErr); err != nil {
+			return errors.WithMessage(err, "could not write http response")
+		}
+
+		return nil
+	}
+
+	err = kpture.Delete()
+	if err != nil {
+		if err := context.JSON(http.StatusNotFound, err); err != nil {
+			return errors.WithMessage(err, "could not write http response")
+		}
+	}
+
+	delete(profile.kptures, uuid)
+
+	if err := context.JSON(http.StatusNoContent, kpture); err != nil {
+		return errors.WithMessage(err, "could not write http response")
+	}
+
+	return nil
+}
+
+// @Summary                    Get kaptures
+// @Description                Get kaptures
+// @Tags                       kptures
+// @Produce                    json
+// @Failure                    500  {string}  string
+// @Failure                    404  {object}  serverError
+// @Success                    200  {object}  map[string]capture.Kpture
+// @Router                     /api/v1/kptures [get]
+// @securityDefinitions.basic  BasicAuth
 func (s *Server) getKptures(context echo.Context) error {
 	s.logger.Debug("getKptures")
 
 	profile, err := s.getProfile(context)
-	fmt.Println(profile)
 	if err != nil {
 		sErr := serverError{"profile does not exist"}
 
