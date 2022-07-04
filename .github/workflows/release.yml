@@ -78,4 +78,12 @@ jobs:
               --release-name-template "{{ .Version }}" \
               --index-path ./index.yaml \
               --push
-        
+      - name: update release
+        id: update_release
+        uses: tubone24/update_release@v1.0
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TAG_NAME: "${{ steps.bumptag.outputs.new_tag }}"
+        with:
+          body: test_body # new body text
+
