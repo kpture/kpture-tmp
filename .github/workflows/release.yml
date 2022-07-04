@@ -60,12 +60,11 @@ jobs:
           # package chart
           ./cr package chart
           # upload chart to github relases
-          echo "${{steps.build_changelog.outputs.changelog}}" > changelog.md
-          cat ./changelog.md
+          echo "${{steps.build_changelog.outputs.changelog}}" > chart/changelog.md
           ./cr upload \
               --owner "$owner" \
               --git-repo "$repo" \
-              --release-notes-file ./changelog.md \
+              --release-notes-file changelog.md \
               --token "${{ secrets.GITHUB_TOKEN }}" \
               --release-name-template "{{ .Version }}"
           # update index and push to github pages
@@ -78,11 +77,3 @@ jobs:
               --release-name-template "{{ .Version }}" \
               --index-path ./index.yaml \
               --push
-      - name: update release
-        id: update_release
-        uses: tubone24/update_release@v1.0
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          body: test_body # new body text
-
