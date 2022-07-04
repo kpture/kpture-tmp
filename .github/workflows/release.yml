@@ -54,7 +54,7 @@ jobs:
           version: v3.8.1
       - name: Prepare Helm Chart
         run: |
-          apt install yq
+          apt install yq -y
           yq e '.appVersion = \"${{ steps.bumptag.outputs.new_tag }}\" ' -i chart/Chart.yaml
           yq e '.version = \"${{ steps.bumptag.outputs.new_tag }}\" ' -i chart/Chart.yaml
       - name: Run chart-releaser
