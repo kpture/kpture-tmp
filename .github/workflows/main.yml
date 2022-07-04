@@ -1,0 +1,27 @@
+name: Go
+on:
+  push:
+    branches: [ master ]
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    - name: Bump version and push tag
+      id: bumptag
+      uses: anothrNick/github-tag-action@1.26.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        WITH_V: true
+        RELEASE_BRANCHES: "master"
+        DRY_RUN: "true"
+        DEFAULT_BUMP : "patch"
+    - name: Build and push
+      id: docker_build
+      uses: docker/build-push-action@v3
+      with:
+        context: .
+        push: false
+        # tags: kpture/server:${{ steps.bumptag.outputs.new_tag }}
+        tags: kpture/server:latest
+        platforms: linux/amd64,linux/arm/v8,linux/arm64
+    - name: Image digest
+      run: echo ${{ steps.docker_build.outputs.digest }}
