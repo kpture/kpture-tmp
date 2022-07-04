@@ -11,6 +11,8 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: '0'
+      - name: safe repo
+        run : git config --global --add safe.directory /github/workspace
       - name: Bump version and push tag
         id: bumptag
         uses: anothrNick/github-tag-action@1.26.0
