@@ -61,6 +61,7 @@ jobs:
           ./cr package chart
           # upload chart to github relases
           echo "${{steps.build_changelog.outputs.changelog}}" > changelog.md
+          cat ./changelog.md
           ./cr upload \
               --owner "$owner" \
               --git-repo "$repo" \
