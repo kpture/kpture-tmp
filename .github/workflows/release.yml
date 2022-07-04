@@ -2,10 +2,10 @@
 name: Create Release
 on: [workflow_dispatch]
 jobs:
-  build:
-    uses: ./.github/workflows/build.yml
-  docker:
-    needs: build
+  # build:
+  #   uses: ./.github/workflows/build.yml
+  release:
+    # needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Bump version and push tag
