@@ -53,9 +53,8 @@ jobs:
           #Download yq
           wget -qO ./yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           chmod a+x ./yq
-          ./yq e '.appVersion = "latest" ' -i chart/Chart.yaml
-          ./yq e '.version = "latest" ' -i chart/Chart.yaml
-          ./yq e ".dependencies[0].version = \"$tag\" " -i chart/Chart.yaml
+          ./yq e '.appVersion = \"$tag\" ' -i chart/Chart.yaml
+          ./yq e '.version = \"$tag\" ' -i chart/Chart.yaml
           # donwload helm chart releaser
           curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/v1.2.1/chart-releaser_1.2.1_linux_amd64.tar.gz"
           tar -xzf cr.tar.gz
