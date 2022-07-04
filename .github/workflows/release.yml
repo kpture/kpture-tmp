@@ -20,64 +20,75 @@ jobs:
           RELEASE_BRANCHES: "main"
           # DRY_RUN: "true"
           DEFAULT_BUMP : "patch"
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-      - name: Login to DockerHub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      # - name: Set up QEMU
+      #   uses: docker/setup-qemu-action@v2
+      # - name: Login to DockerHub
+      #   uses: docker/login-action@v2
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_PASSWORD }}
       - name: Checkout
         uses: actions/checkout@v3
-      - uses: docker/setup-buildx-action@v2
-        id: buildx
-      - name: Build and push
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          platforms: linux/amd64
-          push: true
-          tags: "kpture/kpture:${{ steps.bumptag.outputs.new_tag }}"
-      # - name: Build
-      #   run: |
-      #     docker login --username=${{ secrets.DOCKERHUB_USERNAME }} --email=mary@docker.com
-      #     docker build . --platform=linux/amd64,linux/arm64 -t kpture:${{ steps.bumptag.outputs.new_tag }} --push
+      # - uses: docker/setup-buildx-action@v2
+      #   id: buildx
+      # - name: Build and push
+      #   uses: docker/build-push-action@v3
+      #   with:
+      #     context: .
+      #     platforms: linux/amd64
+      #     push: true
+      #     tags: "kpture/kpture:${{ steps.bumptag.outputs.new_tag }}"
       - name: Release Changelog Builder
         id: build_changelog
         uses: mikepenz/release-changelog-builder-action@v3.0.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Package and upload helm chart
+      - name: Configure Git
         run: |
-          tag=${{ steps.bumptag.outputs.new_tag }}
-          #Download yq
-          wget -qO ./yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-          chmod a+x ./yq
-          ./yq e '.appVersion = \"${{ steps.bumptag.outputs.new_tag }}\" ' -i chart/Chart.yaml
-          ./yq e '.version = \"${{ steps.bumptag.outputs.new_tag }}\" ' -i chart/Chart.yaml
-          # donwload helm chart releaser
-          curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/v1.2.1/chart-releaser_1.2.1_linux_amd64.tar.gz"
-          tar -xzf cr.tar.gz
-          rm -f cr.tar.gz
-          owner=$(cut -d '/' -f 1 <<< "$GITHUB_REPOSITORY")
-          repo=$(cut -d '/' -f 2 <<< "$GITHUB_REPOSITORY")
-          # package chart
-          ./cr package chart
-          # upload chart to github relases
-          ./cr upload \
-              --owner "$owner" \
-              --git-repo "$repo" \
-              --token "${{ secrets.GITHUB_TOKEN }}" \
-              --release-name-template "{{ .Version }}"
-          # update index and push to github pages
-          git config user.email "$owner@users.noreply.github.com"
-          git config user.name "$owner"
-          ./cr index \
-              --owner "$owner" \
-              --git-repo "$repo" \
-              --token "${{ secrets.GITHUB_TOKEN }}" \
-              --release-name-template "{{ .Version }}" \
-              --release-notes-file "${{steps.build_changelog.outputs.changelog}}" \
-              --index-path ./index.yaml \
-              --charts-repo https://$owner.github.io/$repo \
-              --push
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Install Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: v3.8.1
+
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.4.0
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      # - name: Package and upload helm chart
+      #   run: |
+      #     tag=${{ steps.bumptag.outputs.new_tag }}
+      #     #Download yq
+      #     wget -qO ./yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+      #     chmod a+x ./yq
+      #     ./yq e '.appVersion = \"${{ steps.bumptag.outputs.new_tag }}\" ' -i chart/Chart.yaml
+      #     ./yq e '.version = \"${{ steps.bumptag.outputs.new_tag }}\" ' -i chart/Chart.yaml
+      #     # donwload helm chart releaser
+      #     curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/v1.2.1/chart-releaser_1.2.1_linux_amd64.tar.gz"
+      #     tar -xzf cr.tar.gz
+      #     rm -f cr.tar.gz
+      #     owner=$(cut -d '/' -f 1 <<< "$GITHUB_REPOSITORY")
+      #     repo=$(cut -d '/' -f 2 <<< "$GITHUB_REPOSITORY")
+      #     # package chart
+      #     ./cr package chart
+      #     # upload chart to github relases
+      #     ./cr upload \
+      #         --owner "$owner" \
+      #         --git-repo "$repo" \
+      #         --token "${{ secrets.GITHUB_TOKEN }}" \
+      #         --release-name-template "{{ .Version }}"
+      #     # update index and push to github pages
+      #     git config user.email "$owner@users.noreply.github.com"
+      #     git config user.name "$owner"
+      #     ./cr index \
+      #         --owner "$owner" \
+      #         --git-repo "$repo" \
+      #         --token "${{ secrets.GITHUB_TOKEN }}" \
+      #         --release-name-template "{{ .Version }}" \
+      #         --release-notes-file "${{steps.build_changelog.outputs.changelog}}" \
+      #         --index-path ./index.yaml \
+      #         --charts-repo https://$owner.github.io/$repo \
+      #         --push
+        
