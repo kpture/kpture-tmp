@@ -77,4 +77,12 @@ jobs:
               --index-path ./index.yaml \
               --charts-repo https://$owner.github.io/$repo \
               --push
+      - name: update release
+        id: update_release
+        uses: tubone24/update_release@v1.0
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TAG_NAME : ${{ steps.bumptag.outputs.new_tag }}
+        with:
+          body: "${{steps.build_changelog.outputs.changelog}}" 
         
