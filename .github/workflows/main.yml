@@ -5,6 +5,9 @@ on:
 jobs:
   build:
     uses: ./.github/workflows/build.yml
+  docker:
+    needs: build
+    runs-on: ubuntu-latest
     steps:
       - name: Bump version and push tag
         id: bumptag
