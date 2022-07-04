@@ -35,7 +35,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: "kpture/kpture:${{ steps.bumptag.outputs.new_tag }}"
       # - name: Build
@@ -53,8 +53,8 @@ jobs:
           #Download yq
           wget -qO ./yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           chmod a+x ./yq
-          ./yq e '.appVersion = \"$tag\" ' -i chart/Chart.yaml
-          ./yq e '.version = \"$tag\" ' -i chart/Chart.yaml
+          ./yq e '.appVersion = \"${{ steps.bumptag.outputs.new_tag }}\" ' -i chart/Chart.yaml
+          ./yq e '.version = \"${{ steps.bumptag.outputs.new_tag }}\" ' -i chart/Chart.yaml
           # donwload helm chart releaser
           curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/v1.2.1/chart-releaser_1.2.1_linux_amd64.tar.gz"
           tar -xzf cr.tar.gz
