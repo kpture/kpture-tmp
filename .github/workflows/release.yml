@@ -54,17 +54,15 @@ jobs:
           body: ${{steps.build_changelog.outputs.changelog}}
           draft: false
           prerelease: false
+      - uses: azure/setup-helm@v3
       - name: Package and upload helm chart
         run: |
           tag=${{ steps.bumptag.outputs.new_tag }}
-          #Download yq
           wget -qO ./yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           chmod a+x ./yq
           ./yq e '.appVersion = "${{ steps.bumptag.outputs.new_tag }}" ' -i chart/Chart.yaml
           ./yq e '.version = "${{ steps.bumptag.outputs.new_tag }}" ' -i chart/Chart.yaml
-      - uses: azure/setup-helm@v3
-      - name: package helm chart
-        run: helm package chart
+          helm package chart
       - name: Upload Release Asset
         id: upload-release-asset 
         uses: actions/upload-release-asset@v1
@@ -75,30 +73,19 @@ jobs:
           asset_path: ./kpture-${{ steps.bumptag.outputs.new_tag }}.tgz
           asset_name: kpture-${{ steps.bumptag.outputs.new_tag }}.tgz
           asset_content_type: application/gzip
-     
-      #     # donwload helm chart releaser
-      #     curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/v1.4.0/chart-releaser_1.4.0_linux_amd64.tar.gz"
-      #     tar -xzf cr.tar.gz
-      #     rm -f cr.tar.gz
-      #     owner=$(cut -d '/' -f 1 <<< "$GITHUB_REPOSITORY")
-      #     repo=$(cut -d '/' -f 2 <<< "$GITHUB_REPOSITORY")
-      #     # package chart
-      #     ./cr package chart
-      #     # upload chart to github relases
-      #     echo "${{steps.build_changelog.outputs.changelog}}" > chart/changelog.md
-      #     ./cr upload \
-      #         --owner "$owner" \
-      #         --git-repo "$repo" \
-      #         --release-notes-file changelog.md \
-      #         --token "${{ secrets.GITHUB_TOKEN }}" \
-      #         --release-name-template "{{ .Version }}"
-      #     # update index and push to github pages
-      #     git config user.email "$owner@users.noreply.github.com"
-      #     git config user.name "$owner"
-      #     ./cr index \
-      #         --owner "$owner" \
-      #         --git-repo "$repo" \
-      #         --token "${{ secrets.GITHUB_TOKEN }}" \
-      #         --release-name-template "{{ .Version }}" \
-      #         --index-path ./index.yaml \
-      #         --push
+      - name: publish to chart repo
+        run: |   
+          curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/v1.4.0/chart-releaser_1.4.0_linux_amd64.tar.gz"
+          tar -xzf cr.tar.gz
+          rm -f cr.tar.gz
+          owner=$(cut -d '/' -f 1 <<< "$GITHUB_REPOSITORY")
+          repo=$(cut -d '/' -f 2 <<< "$GITHUB_REPOSITORY")
+          git config user.email "$owner@users.noreply.github.com"
+          git config user.name "$owner"
+          ./cr index \
+              --owner "$owner" \
+              --git-repo "$repo" \
+              --token "${{ secrets.GITHUB_TOKEN }}" \
+              --release-name-template "{{ .Version }}" \
+              --index-path ./index.yaml \
+              --push
