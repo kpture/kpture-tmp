@@ -55,8 +55,8 @@ jobs:
       - name: Prepare Helm Chart
         run: |
           sudo snap install yq 
-          yq e '.appVersion = \"${{ steps.bumptag.outputs.new_tag }}\" ' -i chart/Chart.yaml
-          yq e '.version = \"${{ steps.bumptag.outputs.new_tag }}\" ' -i chart/Chart.yaml
+          yq -e '.appVersion = \"${{ steps.bumptag.outputs.new_tag }}\" ' -i chart/Chart.yaml
+          yq -e '.version = \"${{ steps.bumptag.outputs.new_tag }}\" ' -i chart/Chart.yaml
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.4.0
         env:
