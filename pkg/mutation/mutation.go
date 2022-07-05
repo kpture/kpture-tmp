@@ -1,17 +1,19 @@
 package mutation
 
 import (
-	"bytes"
 	"context"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func createMutationConfig(caCert *bytes.Buffer) error {
+func CreateMutationConfig(caCert []byte) error {
+	logrus.Info("Creating mutation webhook")
+	logrus.Info(len(caCert))
 	config := ctrl.GetConfigOrDie()
 
 	kubeClient, err := kubernetes.NewForConfig(config)
@@ -30,7 +32,7 @@ func createMutationConfig(caCert *bytes.Buffer) error {
 		}
 	}
 
-	mutateconfig := getMutationConfig(caCert.Bytes())
+	mutateconfig := getMutationConfig(caCert)
 
 	_, err = admclient.
 		Create(context.Background(), mutateconfig, metav1.CreateOptions{})

@@ -13,6 +13,7 @@ import (
 
 	"newproxy/pkg/agent"
 	"newproxy/pkg/capture"
+	"newproxy/pkg/certs"
 	"newproxy/pkg/logger"
 
 	"github.com/labstack/echo/v4"
@@ -26,11 +27,11 @@ import (
 type Server struct {
 	logger      *logrus.Entry
 	Agents      []capture.Agent
-	kptures     map[string]*capture.Kpture
 	profiles    map[string]profile
 	Echo        *echo.Echo
 	kubeclient  kubernetes.Interface
 	storagePath string
+	certs       *certs.CertificatesHandler
 }
 
 func NewServer(k8sClient kubernetes.Interface, storagePath string) (*Server, error) {
@@ -55,9 +56,9 @@ func NewServer(k8sClient kubernetes.Interface, storagePath string) (*Server, err
 		logger:      logger.NewLogger("http"),
 		kubeclient:  k8sClient,
 		storagePath: storagePath,
-		kptures:     make(map[string]*capture.Kpture),
 		profiles:    make(map[string]profile),
 		Agents:      []capture.Agent{},
+		certs:       certs.NewCertificatesHandler(k8sClient),
 	}
 
 	err := os.MkdirAll(storagePath, fs.ModePerm)
@@ -79,9 +80,38 @@ func NewServer(k8sClient kubernetes.Interface, storagePath string) (*Server, err
 	return serv, nil
 }
 
-func (s *Server) Start() {
+func (s *Server) Start() error {
+	tlsConfig, err := s.certs.Get()
+	if err != nil {
+		return err
+	}
+
+	serverhttps := http.Server{
+		Addr:      "0.0.0.0:443",
+		Handler:   s.Echo, // set Echo as handler
+		TLSConfig: tlsConfig,
+		// ReadTimeout: 30 * time.Second, // use custom timeouts
+	}
+
+	go func() {
+		s.logger.Debug("Starting httpsbackend server")
+		if err := serverhttps.ListenAndServeTLS("", ""); err != http.ErrServerClosed {
+			s.Echo.Logger.Fatal(err)
+		}
+	}()
+
+	serverhttp := http.Server{
+		Addr:    "0.0.0.0:80",
+		Handler: s.Echo, // set Echo as handler
+		// ReadTimeout: 30 * time.Second, // use custom timeouts
+	}
+
 	s.logger.Debug("Starting http backend server")
-	s.Echo.Logger.Fatal(s.Echo.Start(":8080"))
+	if err := serverhttp.ListenAndServe(); err != http.ErrServerClosed {
+		s.Echo.Logger.Fatal(err)
+	}
+
+	return err
 }
 
 func (s *Server) RegisterK8sAgents() error {

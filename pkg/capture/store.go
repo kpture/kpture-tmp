@@ -16,6 +16,7 @@ import (
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcapgo"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -55,8 +56,9 @@ func (k *Kpture) storePackets(basepath string, name string, channel chan gopacke
 }
 
 func (k *Kpture) Delete() error {
-	err := os.Remove(filepath.Join(k.archivePath, k.ProfileName, k.UUID))
-
+	logrus.Error("Deleting ", filepath.Join(k.archivePath, k.ProfileName, k.UUID))
+	err := os.RemoveAll(filepath.Join(k.archivePath, k.ProfileName, k.UUID))
+	logrus.Error(err)
 	return errors.WithMessage(err, "could not delete kpture tar")
 }
 

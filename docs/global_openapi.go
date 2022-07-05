@@ -13,3 +13,4 @@ package docs
 
 // @host      localhost:8080
 // @securityDefinitions.basic  BasicAuth
+// @BasePath  /kpture/api/v1/

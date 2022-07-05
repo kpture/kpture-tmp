@@ -16,7 +16,7 @@ import (
 // @Tags         agents
 // @Failure      500  {object}  serverError
 // @Success      200  {object}  []agent.Metadata
-// @Router       /api/v1/agents [get]
+// @Router       /agents [get]
 func (s *Server) getAgents(context echo.Context) error {
 	context.Request().Header.Set(echo.HeaderXRequestID, "getAgents")
 

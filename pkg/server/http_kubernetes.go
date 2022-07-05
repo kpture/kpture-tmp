@@ -19,7 +19,7 @@ import (
 // @Tags         kubernetes
 // @Failure      500  {object}  serverError
 // @Success      200  {object}  []string
-// @Router       /api/v1/kpture/k8s/namespaces [GET]
+// @Router       /kpture/k8s/namespaces [GET]
 func (s *Server) getKubernetesEnabledNs(context echo.Context) error {
 	s.logger.Debug("getKubernetesEnabledNs")
 
@@ -57,7 +57,7 @@ func (s *Server) getKubernetesEnabledNs(context echo.Context) error {
 // @Tags         kubernetes
 // @Failure      500  {object}  serverError
 // @Success      200  {object}  []string
-// @Router       /api/v1/k8s/namespaces [GET]
+// @Router       /k8s/namespaces [GET]
 func (s *Server) getNamespaces(context echo.Context) error {
 	s.logger.Debug("getKubernetesEnabledNs")
 
@@ -96,7 +96,7 @@ func (s *Server) getNamespaces(context echo.Context) error {
 // @Failure      500  {object}  serverError
 // @Success      304
 // @Success      200
-// @Router       /api/v1/k8s/namespaces/{namespace}/inject [POST]
+// @Router       /k8s/namespaces/{namespace}/inject [POST]
 func (s *Server) injectNamespace(context echo.Context) error {
 	s.logger.Debug("injectNamespace")
 	ns := context.Param("namespace")
@@ -149,7 +149,7 @@ func (s *Server) injectNamespace(context echo.Context) error {
 // @Failure      400   {object}  serverError
 // @Success      200   {object}  capture.Kpture
 // @Header       200   {string}  Websocket  ""
-// @Router       /api/v1/kpture/k8s/namespace [post]
+// @Router       /kpture/k8s/namespace [post]
 func (s *Server) startNamespacedKpture(context echo.Context) error {
 	s.logger.Debug("startNamespacedKpture")
 
