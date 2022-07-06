@@ -2,13 +2,14 @@
 name: Create Release
 on: [workflow_dispatch]
 jobs:
-  build:
-    uses: ./.github/workflows/build.yml
+  # build:
+  #   uses: ./.github/workflows/build.yml
   release:
     needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: azure/setup-helm@v3
       - name: safe repo
         run : git config --global --add safe.directory /github/workspace
       - name: Bump version and push tag
@@ -26,6 +27,7 @@ jobs:
           chmod a+x ./yq
           ./yq e '.appVersion = "${{ steps.bumptagfake.outputs.new_tag }}" ' -i chart/Chart.yaml
           ./yq e '.version = "${{ steps.bumptagfake.outputs.new_tag }}" ' -i chart/Chart.yaml
+          helm package chart
       - name: Commit report
         run: |
           git config --global user.name 'kpture'
@@ -48,8 +50,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
-      - name: Checkout
-        uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
         id: buildx
       - name: Build and push
@@ -75,10 +75,6 @@ jobs:
           body: ${{steps.build_changelog.outputs.changelog}}
           draft: false
           prerelease: false
-      - uses: azure/setup-helm@v3
-      - name: Package and upload helm chart
-        run: |
-          helm package chart
       - name: Upload Release Asset
         id: upload-release-asset 
         uses: actions/upload-release-asset@v1
