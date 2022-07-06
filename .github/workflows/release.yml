@@ -12,6 +12,27 @@ jobs:
       - name: safe repo
         run : git config --global --add safe.directory /github/workspace
       - name: Bump version and push tag
+        id: bumptagfake
+        uses: anothrNick/github-tag-action@1.39.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WITH_V: true
+          RELEASE_BRANCHES: "main"
+          DRY_RUN: "true"
+          DEFAULT_BUMP : "patch"
+      - name: Package and upload helm chart
+        run: |
+          wget -qO ./yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          chmod a+x ./yq
+          ./yq e '.appVersion = "${{ steps.bumptagfake.outputs.new_tag }}" ' -i chart/Chart.yaml
+          ./yq e '.version = "${{ steps.bumptagfake.outputs.new_tag }}" ' -i chart/Chart.yaml
+      - name: Commit report
+        run: |
+          git config --global user.name 'kpture'
+          git config --global user.email 'kpture.git@gmail.com'
+          git commit -am "[CI] Bump chart version"
+          git push
+      - name: Bump version and push tag
         id: bumptag
         uses: anothrNick/github-tag-action@1.39.0
         env:
@@ -57,11 +78,6 @@ jobs:
       - uses: azure/setup-helm@v3
       - name: Package and upload helm chart
         run: |
-          tag=${{ steps.bumptag.outputs.new_tag }}
-          wget -qO ./yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-          chmod a+x ./yq
-          ./yq e '.appVersion = "${{ steps.bumptag.outputs.new_tag }}" ' -i chart/Chart.yaml
-          ./yq e '.version = "${{ steps.bumptag.outputs.new_tag }}" ' -i chart/Chart.yaml
           helm package chart
       - name: Upload Release Asset
         id: upload-release-asset 
