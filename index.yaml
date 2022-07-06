@@ -2,6 +2,16 @@ apiVersion: v1
 entries:
   kpture:
   - apiVersion: v2
+    appVersion: v0.0.31
+    created: "2022-07-06T17:33:11.973540457Z"
+    description: A Helm chart for Kubernetes
+    digest: 750b51c0ebb1ec31d2f58d95c1d00806b9fbc0c790f48eeaa34dcea5ae1300d9
+    name: kpture
+    type: application
+    urls:
+    - https://github.com/kpture/kpture-tmp/releases/download/v0.0.31/kpture-v0.0.31.tgz
+    version: v0.0.31
+  - apiVersion: v2
     appVersion: v0.0.28
     created: "2022-07-06T15:46:04.940448267Z"
     description: A Helm chart for Kubernetes
@@ -101,4 +111,4 @@ entries:
     urls:
     - https://github.com/kpture/kpture-tmp/releases/download/v0.0.13/kpture-v0.0.13.tgz
     version: v0.0.13
-generated: "2022-07-06T15:46:04.940531374Z"
+generated: "2022-07-06T17:33:11.97378036Z"
