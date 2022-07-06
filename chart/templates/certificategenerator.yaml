@@ -23,5 +23,5 @@ spec:
       serviceAccountName: {{ include "kpture.serviceAccountName" . }}
       containers:
       - name: certificate-generator
-        image: "ghcr.io/kpture/certsgenerator:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        image: "ghcr.io/kpture/certsgenerator:{{ .Chart.AppVersion }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}

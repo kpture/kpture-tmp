@@ -8,6 +8,7 @@ const basePath = "/kpture/api/v1/"
 
 func (s *Server) RegisterRoutes() {
 	s.Echo.Static(basePath+"captures/", s.storagePath)
+
 	s.Echo.POST("/mutate", mutation.HandleMutate)
 
 	s.Echo.POST(basePath+"kpture", s.startKpture)

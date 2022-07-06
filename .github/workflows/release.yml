@@ -39,6 +39,7 @@ jobs:
           context: .
           file: ${{ matrix.dockerfile }}
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: "${{ matrix.image }}:${{ steps.bumptagfake.outputs.new_tag }}"
   release:
     needs: docker
