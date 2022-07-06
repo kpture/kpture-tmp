@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: azure/setup-helm@v3
+      # - uses: azure/setup-helm@v3
       - name: safe repo
         run : git config --global --add safe.directory /github/workspace
       - name: Bump version and push tag
@@ -21,35 +21,36 @@ jobs:
           RELEASE_BRANCHES: "main"
           DRY_RUN: "true"
           DEFAULT_BUMP : "patch"
-      - name: Package and upload helm chart
-        run: |
-          wget -qO ./yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-          chmod a+x ./yq
-          ./yq e '.appVersion = "${{ steps.bumptagfake.outputs.new_tag }}" ' -i chart/Chart.yaml
-          ./yq e '.version = "${{ steps.bumptagfake.outputs.new_tag }}" ' -i chart/Chart.yaml
-          helm package chart
-      - name: Commit report
-        run: |
-          git config --global user.name 'kpture'
-          git config --global user.email 'kpture.git@gmail.com'
-          git commit -am "[CI] Bump chart version"
-          git push
-      - name: Bump version and push tag
-        id: bumptag
-        uses: anothrNick/github-tag-action@1.39.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WITH_V: true
-          RELEASE_BRANCHES: "main"
-          # DRY_RUN: "true"
-          DEFAULT_BUMP : "patch"
+      # - name: Package and upload helm chart
+      #   run: |
+      #     wget -qO ./yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+      #     chmod a+x ./yq
+      #     ./yq e '.appVersion = "${{ steps.bumptagfake.outputs.new_tag }}" ' -i chart/Chart.yaml
+      #     ./yq e '.version = "${{ steps.bumptagfake.outputs.new_tag }}" ' -i chart/Chart.yaml
+      #     helm package chart
+      # - name: Commit report
+      #   run: |
+      #     git config --global user.name 'kpture'
+      #     git config --global user.email 'kpture.git@gmail.com'
+      #     git commit -am "[CI] Bump chart version"
+      #     git push
+      # - name: Bump version and push tag
+      #   id: bumptag
+      #   uses: anothrNick/github-tag-action@1.39.0
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     WITH_V: true
+      #     RELEASE_BRANCHES: "main"
+      #     # DRY_RUN: "true"
+      #     DEFAULT_BUMP : "patch"
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/setup-buildx-action@v2
         id: buildx
       - name: Build and push
@@ -58,55 +59,55 @@ jobs:
           context: .
           platforms: linux/amd64, linux/arm64
           push: true
-          tags: "kpture/kpture:${{ steps.bumptag.outputs.new_tag }}"
+          tags: "ghcr.io/kpture/kpture:${{ steps.bumptagfake.outputs.new_tag }}"
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
           context: .
           platforms: linux/amd64, linux/arm64
           push: true
-          tags: "kpture/certsgenerator:${{ steps.bumptag.outputs.new_tag }}"
+          tags: "ghcr.io/kpture/certsgenerator:${{ steps.bumptagfake.outputs.new_tag }}"
           file: Dockerfile_certs
-      - name: Release Changelog Builder
-        id: build_changelog
-        uses: mikepenz/release-changelog-builder-action@v3.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
-        with:
-          tag_name: ${{ steps.bumptag.outputs.new_tag }}
-          release_name: Release ${{ steps.bumptag.outputs.new_tag }}
-          body: ${{steps.build_changelog.outputs.changelog}}
-          draft: false
-          prerelease: false
-      - name: Upload Release Asset
-        id: upload-release-asset 
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: ./kpture-${{ steps.bumptag.outputs.new_tag }}.tgz
-          asset_name: kpture-${{ steps.bumptag.outputs.new_tag }}.tgz
-          asset_content_type: application/gzip
-      - name: Create Index yaml
-        run: |   
-          curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/v1.4.0/chart-releaser_1.4.0_linux_amd64.tar.gz"
-          tar -xzf cr.tar.gz
-          rm -f cr.tar.gz
-          owner=$(cut -d '/' -f 1 <<< "$GITHUB_REPOSITORY")
-          repo=$(cut -d '/' -f 2 <<< "$GITHUB_REPOSITORY")
-          git config user.email "$owner@users.noreply.github.com"
-          git config user.name "$owner"
-          ./cr package chart
-          ./cr index \
-              --owner "$owner" \
-              --git-repo "$repo" \
-              --token "${{ secrets.GITHUB_TOKEN }}" \
-              --release-name-template "{{ .Version }}" \
-              --index-path ./index.yaml \
-              --push
+      # - name: Release Changelog Builder
+      #   id: build_changelog
+      #   uses: mikepenz/release-changelog-builder-action@v3.0.1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Create Release
+      #   id: create_release
+      #   uses: actions/create-release@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+      #   with:
+      #     tag_name: ${{ steps.bumptag.outputs.new_tag }}
+      #     release_name: Release ${{ steps.bumptag.outputs.new_tag }}
+      #     body: ${{steps.build_changelog.outputs.changelog}}
+      #     draft: false
+      #     prerelease: false
+      # - name: Upload Release Asset
+      #   id: upload-release-asset 
+      #   uses: actions/upload-release-asset@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+      #     asset_path: ./kpture-${{ steps.bumptag.outputs.new_tag }}.tgz
+      #     asset_name: kpture-${{ steps.bumptag.outputs.new_tag }}.tgz
+      #     asset_content_type: application/gzip
+      # - name: Create Index yaml
+      #   run: |   
+      #     curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/v1.4.0/chart-releaser_1.4.0_linux_amd64.tar.gz"
+      #     tar -xzf cr.tar.gz
+      #     rm -f cr.tar.gz
+      #     owner=$(cut -d '/' -f 1 <<< "$GITHUB_REPOSITORY")
+      #     repo=$(cut -d '/' -f 2 <<< "$GITHUB_REPOSITORY")
+      #     git config user.email "$owner@users.noreply.github.com"
+      #     git config user.name "$owner"
+      #     ./cr package chart
+      #     ./cr index \
+      #         --owner "$owner" \
+      #         --git-repo "$repo" \
+      #         --token "${{ secrets.GITHUB_TOKEN }}" \
+      #         --release-name-template "{{ .Version }}" \
+      #         --index-path ./index.yaml \
+      #         --push
