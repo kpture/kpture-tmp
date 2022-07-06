@@ -3,7 +3,6 @@ package main
 import (
 	_ "newproxy/docs"
 	"newproxy/pkg/logger"
-	"newproxy/pkg/mutation"
 	"newproxy/pkg/server"
 
 	"k8s.io/client-go/kubernetes"
@@ -13,13 +12,6 @@ import (
 func main() {
 	// //HTTPS Server to receive the mutation request from K8s admission webhook
 	mainLog := logger.NewLogger("main")
-
-	httpsServer, err := mutation.NewMutationWebHookServer()
-	if err != nil {
-		mainLog.Errorf("error creating mutation webhook server: %v", err)
-	}
-
-	go httpsServer.Start()
 
 	k8sconfig, err := rest.InClusterConfig()
 	if err != nil {

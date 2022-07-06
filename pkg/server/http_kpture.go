@@ -3,12 +3,14 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
 
 	"newproxy/pkg/capture"
 
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // @Summary                    Start Kpture
@@ -20,7 +22,7 @@ import (
 // @Failure      500   {object}  serverError
 // @Success                    200   {object}  capture.Kpture
 // @Header                     200   {string}  Websocket  ""
-// @Router                     /api/v1/kpture [post]
+// @Router                     /kpture [post]
 // @securityDefinitions.basic  BasicAuth
 func (s *Server) startKpture(context echo.Context) error {
 	s.logger.Debug("startKpture")
@@ -87,7 +89,7 @@ func (s *Server) startKpture(context echo.Context) error {
 // @Failure                    500   {object}  serverError
 // @Failure      404   {object}  serverError
 // @Success                    200   {object}  capture.Kpture
-// @Router                     /api/v1/kpture/{uuid}/stop [put]
+// @Router                     /kpture/{uuid}/stop [put]
 // @securityDefinitions.basic  BasicAuth
 func (s *Server) stopKpture(context echo.Context) error {
 	s.logger.Debug("stopKpture")
@@ -133,7 +135,7 @@ func (s *Server) stopKpture(context echo.Context) error {
 // @Param                      uuid  path      string  true  "capture uuid"
 // @Failure                    500   {object}  serverError
 // @Failure                    404   {object}  serverError
-// @Router                     /api/v1/kpture/{uuid}/download [get]
+// @Router                     /kpture/{uuid}/download [get]
 // @securityDefinitions.basic  BasicAuth
 func (s *Server) downLoadKpture(context echo.Context) error {
 	s.logger.Debug("downloadKpture")
@@ -189,7 +191,7 @@ func (s *Server) downLoadKpture(context echo.Context) error {
 // @Failure                    500   {object}  serverError
 // @Failure                    404   {object}  serverError
 // @Success                    200   {object}  capture.Kpture
-// @Router                     /api/v1/kpture/{uuid} [get]
+// @Router                     /kpture/{uuid} [get]
 // @securityDefinitions.basic  BasicAuth
 func (s *Server) getKpture(context echo.Context) error {
 	s.logger.Debug("getKpture")
@@ -233,9 +235,9 @@ func (s *Server) getKpture(context echo.Context) error {
 // @Failure                    500   {object}  serverError
 // @Failure                    404   {object}  serverError
 // @Success      204
-// @Router       /api/v1/kpture/{uuid} [delete]
+// @Router       /kpture/{uuid} [delete]
 func (s *Server) deleteKpture(context echo.Context) error {
-	s.logger.Debug("getKpture")
+	s.logger.Debug("deletekpture")
 
 	uuid := context.Param("uuid")
 
@@ -254,6 +256,7 @@ func (s *Server) deleteKpture(context echo.Context) error {
 
 	if kpture == nil {
 		sErr := serverError{errors.New("capture not found").Error()}
+		logrus.Error(sErr)
 		if err := context.JSON(http.StatusNotFound, sErr); err != nil {
 			return errors.WithMessage(err, "could not write http response")
 		}
@@ -261,9 +264,11 @@ func (s *Server) deleteKpture(context echo.Context) error {
 		return nil
 	}
 
-	err = kpture.Delete()
+	err = os.RemoveAll(filepath.Join(s.storagePath, profile.Name, uuid))
+	logrus.Error(err)
 	if err != nil {
-		if err := context.JSON(http.StatusNotFound, err); err != nil {
+		logrus.Error(err)
+		if err := context.JSON(http.StatusInternalServerError, err); err != nil {
 			return errors.WithMessage(err, "could not write http response")
 		}
 	}
@@ -284,7 +289,7 @@ func (s *Server) deleteKpture(context echo.Context) error {
 // @Failure                    500  {string}  string
 // @Failure                    404  {object}  serverError
 // @Success                    200  {object}  map[string]capture.Kpture
-// @Router                     /api/v1/kptures [get]
+// @Router                     /kptures [get]
 // @securityDefinitions.basic  BasicAuth
 func (s *Server) getKptures(context echo.Context) error {
 	s.logger.Debug("getKptures")

@@ -1,7 +1,10 @@
 package server
 
 import (
+	"io/fs"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"newproxy/pkg/capture"
 
@@ -19,7 +22,7 @@ type profileResponse struct {
 // @Tags         profiles
 // @Failure      500  {object}  serverError
 // @Success      200  {object}  []string{}
-// @Router       /api/v1/profiles [get]
+// @Router       /profiles [get]
 func (s *Server) getProfiles(context echo.Context) error {
 	s.logger.Debug("getHostFile")
 
@@ -42,13 +45,13 @@ func (s *Server) getProfiles(context echo.Context) error {
 // @Failure      500  {object}  serverError
 // @Success      200
 // @Param        profileName  path  string  true  "profileName"
-// @Router       /api/v1/profile/{profileName} [POST]
+// @Router       /profile/{profileName} [POST]
 func (s *Server) createProfile(context echo.Context) error {
 	s.logger.Debug("getHostFile")
 
 	profileName := context.Param("profileName")
 
-	if len(profileName) == 0 {
+	if len(profileName) == 0 || profileName == "default" {
 		sErr := serverError{"invalid profile name"}
 
 		return echo.NewHTTPError(http.StatusBadRequest, sErr)
@@ -65,7 +68,49 @@ func (s *Server) createProfile(context echo.Context) error {
 		kptures: make(map[string]*capture.Kpture),
 	}
 
+	err := os.MkdirAll(filepath.Join(s.storagePath, profileName), fs.ModePerm)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err)
+	}
+
 	if err := context.JSON(http.StatusOK, nil); err != nil {
+		return errors.WithMessage(err, "could not write http response")
+	}
+
+	return nil
+}
+
+// @Summary      Delete profile
+// @Description  Delete profile
+// @Tags         profiles
+// @Failure      500  {object}  serverError
+// @Success      204
+// @Param        profileName  path  string  true  "profileName"
+// @Router       /profile/{profileName} [DELETE]
+func (s *Server) deleteProfile(context echo.Context) error {
+	s.logger.Debug("getHostFile")
+
+	profileName := context.Param("profileName")
+
+	if len(profileName) == 0 {
+		sErr := serverError{"invalid profile name"}
+
+		return echo.NewHTTPError(http.StatusBadRequest, sErr)
+	}
+
+	if _, ok := s.profiles[profileName]; !ok {
+		sErr := serverError{"profileName does not exist"}
+		return echo.NewHTTPError(http.StatusNotFound, sErr)
+	}
+
+	err := os.RemoveAll(filepath.Join(s.storagePath, profileName))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, err)
+	}
+
+	delete(s.profiles, profileName)
+
+	if err := context.JSON(http.StatusNoContent, nil); err != nil {
 		return errors.WithMessage(err, "could not write http response")
 	}
 

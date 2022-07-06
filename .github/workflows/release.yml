@@ -78,11 +78,6 @@ jobs:
       - uses: azure/setup-helm@v3
       - name: Package and upload helm chart
         run: |
-          tag=${{ steps.bumptag.outputs.new_tag }}
-          wget -qO ./yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-          chmod a+x ./yq
-          ./yq e '.appVersion = "${{ steps.bumptag.outputs.new_tag }}" ' -i chart/Chart.yaml
-          ./yq e '.version = "${{ steps.bumptag.outputs.new_tag }}" ' -i chart/Chart.yaml
           helm package chart
       - name: Upload Release Asset
         id: upload-release-asset 
