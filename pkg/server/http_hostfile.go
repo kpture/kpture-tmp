@@ -15,7 +15,7 @@ import (
 // @Tags         wireshark
 // @Failure      500  {object}  serverError
 // @Success      200  {string}  string
-// @Router       /api/v1/wireshark/hostfile [get]
+// @Router       /wireshark/hostfile [get]
 func (s *Server) getHostFile(context echo.Context) error {
 	s.logger.Debug("getHostFile")
 

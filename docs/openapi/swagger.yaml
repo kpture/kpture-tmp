@@ -1,3 +1,4 @@
+basePath: /kpture/api/v1/
 definitions:
   agent.Info:
     properties:
@@ -90,7 +91,7 @@ info:
   title: Kpture-backend
   version: "0.1"
 paths:
-  /api/v1/agents:
+  /agents:
     get:
       description: Get Agents
       produces:
@@ -109,7 +110,7 @@ paths:
       summary: Get Agents
       tags:
       - agents
-  /api/v1/k8s/namespaces:
+  /k8s/namespaces:
     get:
       consumes:
       - application/json
@@ -130,7 +131,7 @@ paths:
       summary: Get all kubernetes namespaces
       tags:
       - kubernetes
-  /api/v1/k8s/namespaces/{namespace}/inject:
+  /k8s/namespaces/{namespace}/inject:
     post:
       consumes:
       - application/json
@@ -155,7 +156,7 @@ paths:
       summary: Inject annotation webhook
       tags:
       - kubernetes
-  /api/v1/kpture:
+  /kpture:
     post:
       consumes:
       - application/json
@@ -184,7 +185,7 @@ paths:
       summary: Start Kpture
       tags:
       - kptures
-  /api/v1/kpture/{uuid}:
+  /kpture/{uuid}:
     delete:
       description: Delete kapture
       parameters:
@@ -235,7 +236,7 @@ paths:
       summary: Get kapture
       tags:
       - kptures
-  /api/v1/kpture/{uuid}/download:
+  /kpture/{uuid}/download:
     get:
       description: Download kpture
       parameters:
@@ -258,7 +259,7 @@ paths:
       summary: Download kpture
       tags:
       - kptures
-  /api/v1/kpture/{uuid}/stop:
+  /kpture/{uuid}/stop:
     put:
       description: Stop Kpture
       parameters:
@@ -285,7 +286,7 @@ paths:
       summary: Stop Kpture
       tags:
       - kptures
-  /api/v1/kpture/k8s/namespace:
+  /kpture/k8s/namespace:
     post:
       consumes:
       - application/json
@@ -318,7 +319,7 @@ paths:
       summary: Start namespace kpture
       tags:
       - kubernetes
-  /api/v1/kpture/k8s/namespaces:
+  /kpture/k8s/namespaces:
     get:
       consumes:
       - application/json
@@ -339,7 +340,7 @@ paths:
       summary: Get enabled kubernetes namespaces
       tags:
       - kubernetes
-  /api/v1/kptures:
+  /kptures:
     get:
       description: Get kaptures
       produces:
@@ -362,7 +363,25 @@ paths:
       summary: Get kaptures
       tags:
       - kptures
-  /api/v1/profile/{profileName}:
+  /profile/{profileName}:
+    delete:
+      description: Delete profile
+      parameters:
+      - description: profileName
+        in: path
+        name: profileName
+        required: true
+        type: string
+      responses:
+        "204":
+          description: ""
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.serverError'
+      summary: Delete profile
+      tags:
+      - profiles
     post:
       description: Create profile
       parameters:
@@ -381,7 +400,7 @@ paths:
       summary: Create profile
       tags:
       - profiles
-  /api/v1/profiles:
+  /profiles:
     get:
       description: Get profiles
       produces:
@@ -400,7 +419,7 @@ paths:
       summary: Get profiles
       tags:
       - profiles
-  /api/v1/wireshark/hostfile:
+  /wireshark/hostfile:
     get:
       description: Get hostfile
       produces:
