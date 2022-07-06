@@ -4,14 +4,19 @@ on: [workflow_dispatch]
 jobs:
   # build:
   #   uses: ./.github/workflows/build.yml
-  release:
-    # needs: build
+  docker:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+       include:
+         - dockerfile: Dockerfile
+           image: "ghcr.io/kpture/kpture"
+         - dockerfile: Dockerfile_certs
+           image: "ghcr.io/kpture/certsgenerator"
     steps:
       - uses: actions/checkout@v3
-      # - uses: azure/setup-helm@v3
-      - name: safe repo
-        run : git config --global --add safe.directory /github/workspace
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
       - name: Bump version and push tag
         id: bumptagfake
         uses: anothrNick/github-tag-action@1.39.0
@@ -21,6 +26,39 @@ jobs:
           RELEASE_BRANCHES: "main"
           DRY_RUN: "true"
           DEFAULT_BUMP : "patch"
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v2
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64, linux/arm64
+          push: true
+          tags: "${{ matrix.image }}:${{ steps.bumptagfake.outputs.new_tag }}"
+
+  # release:
+  #   # needs: build
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     # - uses: azure/setup-helm@v3
+  #     - name: safe repo
+  #       run : git config --global --add safe.directory /github/workspace
+  #     - name: Bump version and push tag
+  #       id: bumptagfake
+  #       uses: anothrNick/github-tag-action@1.39.0
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #         WITH_V: true
+  #         RELEASE_BRANCHES: "main"
+  #         DRY_RUN: "true"
+  #         DEFAULT_BUMP : "patch"
       # - name: Package and upload helm chart
       #   run: |
       #     wget -qO ./yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
@@ -43,31 +81,31 @@ jobs:
       #     RELEASE_BRANCHES: "main"
       #     # DRY_RUN: "true"
       #     DEFAULT_BUMP : "patch"
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-      - name: Login to DockerHub
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/setup-buildx-action@v2
-        id: buildx
-      - name: Build and push
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          platforms: linux/amd64, linux/arm64
-          push: true
-          tags: "ghcr.io/kpture/kpture:${{ steps.bumptagfake.outputs.new_tag }}"
-      - name: Build and push
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          platforms: linux/amd64, linux/arm64
-          push: true
-          tags: "ghcr.io/kpture/certsgenerator:${{ steps.bumptagfake.outputs.new_tag }}"
-          file: Dockerfile_certs
+      # - name: Set up QEMU
+      #   uses: docker/setup-qemu-action@v2
+      # - name: Login to DockerHub
+      #   uses: docker/login-action@v2
+      #   with:
+      #     registry: ghcr.io
+      #     username: ${{ github.actor }}
+      #     password: ${{ secrets.GITHUB_TOKEN }}
+      # - uses: docker/setup-buildx-action@v2
+      #   id: buildx
+      # - name: Build and push
+      #   uses: docker/build-push-action@v3
+      #   with:
+      #     context: .
+      #     platforms: linux/amd64, linux/arm64
+      #     push: true
+      #     tags: "ghcr.io/kpture/kpture:${{ steps.bumptagfake.outputs.new_tag }}"
+      # - name: Build and push
+      #   uses: docker/build-push-action@v3
+      #   with:
+      #     context: .
+      #     platforms: linux/amd64, linux/arm64
+      #     push: true
+      #     tags: "ghcr.io/kpture/certsgenerator:${{ steps.bumptag.outputs.new_tag }}"
+      #     file: Dockerfile_certs
       # - name: Release Changelog Builder
       #   id: build_changelog
       #   uses: mikepenz/release-changelog-builder-action@v3.0.1

@@ -22,7 +22,7 @@ CMD ["go", "run", "main.go"]
 ################ Production ################
 # # Creates a minimal image for production using distroless base image
 # # More info here: https://github.com/GoogleContainerTools/distroless
-FROM gcr.io/distroless/base-debian10 as production
+FROM scratch as production
 
 # Copy application binary from build/dev stage to the distroless container
 COPY --from=build /app/main /
