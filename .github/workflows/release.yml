@@ -21,8 +21,15 @@ jobs:
       - uses: actions/checkout@v3
       - name: check helm chart
         run: |
-          helm dep up chart
-          helm package chart
+          curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/v1.4.0/chart-releaser_1.4.0_linux_amd64.tar.gz"
+          tar -xzf cr.tar.gz
+          rm -f cr.tar.gz
+          owner=$(cut -d '/' -f 1 <<< "$GITHUB_REPOSITORY")
+          repo=$(cut -d '/' -f 2 <<< "$GITHUB_REPOSITORY")
+          git config user.email "$owner@users.noreply.github.com"
+          git config user.name "$owner"
+          helm dependency update chart
+          ./cr package chart
   docker:
     needs: [check_helm]
     runs-on: ubuntu-latest
