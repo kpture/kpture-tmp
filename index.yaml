@@ -2,6 +2,20 @@ apiVersion: v1
 entries:
   kpture:
   - apiVersion: v2
+    appVersion: v0.0.38
+    created: "2022-07-07T12:07:43.004623489Z"
+    dependencies:
+    - name: dashboard
+      repository: https://kpture.github.io/newfrontend/
+      version: ~v0.0.0
+    description: A Helm chart for Kubernetes
+    digest: 87cc909b27615cc4533b2d0a1f40e740f404fbc1665fc631c118a44f2048b488
+    name: kpture
+    type: application
+    urls:
+    - https://github.com/kpture/kpture-tmp/releases/download/v0.0.38/kpture-v0.0.38.tgz
+    version: v0.0.38
+  - apiVersion: v2
     appVersion: v0.0.34
     created: "2022-07-06T22:29:16.866910783Z"
     description: A Helm chart for Kubernetes
@@ -131,4 +145,4 @@ entries:
     urls:
     - https://github.com/kpture/kpture-tmp/releases/download/v0.0.13/kpture-v0.0.13.tgz
     version: v0.0.13
-generated: "2022-07-06T22:29:16.867178286Z"
+generated: "2022-07-07T12:07:43.004850592Z"
