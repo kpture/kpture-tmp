@@ -149,6 +149,7 @@ jobs:
           repo=$(cut -d '/' -f 2 <<< "$GITHUB_REPOSITORY")
           git config user.email "$owner@users.noreply.github.com"
           git config user.name "$owner"
+          helm repo add dashboard https://kpture.github.io/newfrontend/
           helm dependency update chart
           ./cr package chart
           ./cr index \
