@@ -52,8 +52,16 @@ jobs:
           push: true
           platforms: ${{ github.event.inputs.platform }}
           tags: "${{ matrix.image }}:${{ steps.bumptagfake.outputs.new_tag }}"
+  check_helm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: check helm chart
+        run: |
+          helm dep up chart
+          helm package chart
+
   release:
-    needs: docker
+    needs: [docker,check_helm]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
