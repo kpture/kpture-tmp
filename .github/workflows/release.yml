@@ -81,7 +81,7 @@ jobs:
           # | tail --lines=1 \
           # | cut --delimiter='/' --fields=3)
           # ./yq e ".dependencies[0].version = \"$DASHBOARD_VERSION\" " -i chart/Chart.yaml
-
+          helm dep up chart
           helm package chart
       - name: Commit [CI] new helm values
         run: |
