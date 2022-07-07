@@ -3,5 +3,7 @@
 *.gzip
 *.tar
 outputs/
+chart/charts/
+chart/Chart.lock
 .vscode/*.log
 .vscode/extensions.json

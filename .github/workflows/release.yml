@@ -1,6 +1,17 @@
 
 name: Create Release
-on: [workflow_dispatch]
+
+on: 
+  workflow_dispatch:
+    inputs:
+      platform:
+        type: choice
+        description: docker cpu arch
+        options: 
+        - linux/amd64
+        - linux/arm64
+        - linux/amd64,linux/arm64
+
 jobs:
   # build:
   #   uses: ./.github/workflows/build.yml
@@ -39,7 +50,7 @@ jobs:
           context: .
           file: ${{ matrix.dockerfile }}
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ github.event.inputs.platform }}
           tags: "${{ matrix.image }}:${{ steps.bumptagfake.outputs.new_tag }}"
   release:
     needs: docker
@@ -64,6 +75,13 @@ jobs:
           chmod a+x ./yq
           ./yq e '.appVersion = "${{ steps.bumptagfake.outputs.new_tag }}" ' -i chart/Chart.yaml
           ./yq e '.version = "${{ steps.bumptagfake.outputs.new_tag }}" ' -i chart/Chart.yaml
+
+          # DASHBOARD_VERSION=$(git -c 'versionsort.suffix=-' \
+          # ls-remote --exit-code --refs --sort='version:refname' --tags https://github.com/kpture/newfrontend '*.*.*' \
+          # | tail --lines=1 \
+          # | cut --delimiter='/' --fields=3)
+          # ./yq e ".dependencies[0].version = \"$DASHBOARD_VERSION\" " -i chart/Chart.yaml
+
           helm package chart
       - name: Commit [CI] new helm values
         run: |
