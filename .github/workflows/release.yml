@@ -141,7 +141,7 @@ jobs:
           repo=$(cut -d '/' -f 2 <<< "$GITHUB_REPOSITORY")
           git config user.email "$owner@users.noreply.github.com"
           git config user.name "$owner"
-          helm dependency update
+          helm dependency update chart
           ./cr package chart
           ./cr index \
               --owner "$owner" \
