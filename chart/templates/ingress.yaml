@@ -17,6 +17,7 @@ kind: Ingress
 metadata:
   name: {{ $fullName }}
   labels:
+    kpture.access: ingress
     {{- include "kpture.labels" . | nindent 4 }}
   {{- with .Values.ingress.annotations }}
   annotations:

@@ -19,7 +19,7 @@ version: v0.0.39
 # follow Semantic Versioning. They should reflect the version the application is using.
 # It is recommended to use it with quotes.
 appVersion: "v0.0.39"
-dependencies:
-  - name: dashboard
-    version: ~v0.0.0
-    repository: "https://kpture.github.io/newfrontend/"
+# dependencies:
+#   - name: dashboard
+#     version: ~v0.0.0
+#     repository: "https://kpture.github.io/newfrontend/"
