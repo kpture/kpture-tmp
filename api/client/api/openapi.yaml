@@ -1,0 +1,540 @@
+openapi: 3.0.1
+info:
+  contact:
+    email: kpture.git@gmail.com
+    name: Author
+    url: http://www.kpture.io
+  description: Kpture Backend server
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: Kpture-backend
+  version: "0.1"
+servers:
+- url: //localhost:8080/kpture/api/v1/
+paths:
+  /agents:
+    get:
+      description: Get Agents
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/agent.Metadata'
+                type: array
+          description: OK
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/server.serverError'
+          description: Internal Server Error
+      summary: Get Agents
+      tags:
+      - agents
+  /k8s/namespaces:
+    get:
+      description: Get all kubernetes namespaces
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  type: string
+                type: array
+          description: OK
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/server.serverError'
+          description: Internal Server Error
+      summary: Get all kubernetes namespaces
+      tags:
+      - kubernetes
+  /k8s/namespaces/{namespace}/inject:
+    post:
+      description: Inject annotation webhook
+      parameters:
+      - description: namespace
+        in: path
+        name: namespace
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content: {}
+          description: ""
+        "304":
+          content: {}
+          description: ""
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/server.serverError'
+          description: Internal Server Error
+      summary: Inject annotation webhook
+      tags:
+      - kubernetes
+  /kpture:
+    post:
+      description: Start Kpture
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/server.kptureRequest'
+        description: selected agents for capture
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/capture.Kpture'
+          description: OK
+          headers:
+            Websocket:
+              schema:
+                type: string
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/server.serverError'
+          description: Internal Server Error
+      summary: Start Kpture
+      tags:
+      - kptures
+      x-codegen-request-body-name: data
+  /kpture/{uuid}:
+    delete:
+      description: Delete kapture
+      parameters:
+      - description: capture uuid
+        in: path
+        name: uuid
+        required: true
+        schema:
+          type: string
+      responses:
+        "204":
+          content: {}
+          description: ""
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/server.serverError'
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/server.serverError'
+          description: Internal Server Error
+      summary: Delete kapture
+      tags:
+      - kptures
+    get:
+      description: Get kapture
+      parameters:
+      - description: capture uuid
+        in: path
+        name: uuid
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/capture.Kpture'
+          description: OK
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/server.serverError'
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/server.serverError'
+          description: Internal Server Error
+      summary: Get kapture
+      tags:
+      - kptures
+  /kpture/{uuid}/download:
+    get:
+      description: Download kpture
+      parameters:
+      - description: capture uuid
+        in: path
+        name: uuid
+        required: true
+        schema:
+          type: string
+      responses:
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/server.serverError'
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/server.serverError'
+          description: Internal Server Error
+      summary: Download kpture
+      tags:
+      - kptures
+  /kpture/{uuid}/stop:
+    put:
+      description: Stop Kpture
+      parameters:
+      - description: capture uuid
+        in: path
+        name: uuid
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/capture.Kpture'
+          description: OK
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/server.serverError'
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/server.serverError'
+          description: Internal Server Error
+      summary: Stop Kpture
+      tags:
+      - kptures
+  /kpture/k8s/namespace:
+    post:
+      description: Start namespace kpture
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/server.kptureNamespaceRequest'
+        description: namespace for capture
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/capture.Kpture'
+          description: OK
+          headers:
+            Websocket:
+              schema:
+                type: string
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/server.serverError'
+          description: Bad Request
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/server.serverError'
+          description: Internal Server Error
+      summary: Start namespace kpture
+      tags:
+      - kubernetes
+      x-codegen-request-body-name: data
+  /kpture/k8s/namespaces:
+    get:
+      description: Get enabled kubernetes namespaces
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  type: string
+                type: array
+          description: OK
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/server.serverError'
+          description: Internal Server Error
+      summary: Get enabled kubernetes namespaces
+      tags:
+      - kubernetes
+  /kptures:
+    get:
+      description: Get kaptures
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  $ref: '#/components/schemas/capture.Kpture'
+                type: object
+          description: OK
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/server.serverError'
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Internal Server Error
+      summary: Get kaptures
+      tags:
+      - kptures
+  /profile/{profileName}:
+    delete:
+      description: Delete profile
+      parameters:
+      - description: profileName
+        in: path
+        name: profileName
+        required: true
+        schema:
+          type: string
+      responses:
+        "204":
+          content: {}
+          description: ""
+        "500":
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/server.serverError'
+          description: Internal Server Error
+      summary: Delete profile
+      tags:
+      - profiles
+    post:
+      description: Create profile
+      parameters:
+      - description: profileName
+        in: path
+        name: profileName
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content: {}
+          description: ""
+        "500":
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/server.serverError'
+          description: Internal Server Error
+      summary: Create profile
+      tags:
+      - profiles
+  /profiles:
+    get:
+      description: Get profiles
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  type: string
+                type: array
+          description: OK
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/server.serverError'
+          description: Internal Server Error
+      summary: Get profiles
+      tags:
+      - profiles
+  /wireshark/hostfile:
+    get:
+      description: Get hostfile
+      responses:
+        "200":
+          content:
+            text/plain:
+              schema:
+                type: string
+          description: OK
+        "500":
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/server.serverError'
+          description: Internal Server Error
+      summary: Get hostfile
+      tags:
+      - wireshark
+components:
+  schemas:
+    agent.Info:
+      example:
+        metadata:
+          system: system
+          name: name
+          namespace: namespace
+          targetUrl: targetUrl
+          status: status
+        errors:
+        - errors
+        - errors
+        packetNb: 0
+      properties:
+        errors:
+          items:
+            type: string
+          type: array
+        metadata:
+          $ref: '#/components/schemas/agent.Metadata'
+        packetNb:
+          type: integer
+      type: object
+    agent.Metadata:
+      example:
+        system: system
+        name: name
+        namespace: namespace
+        targetUrl: targetUrl
+        status: status
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        status:
+          type: string
+        system:
+          type: string
+        targetUrl:
+          type: string
+      type: object
+    capture.Info:
+      example:
+        size: 1
+        packetNb: 6
+      properties:
+        packetNb:
+          type: integer
+        size:
+          type: integer
+      type: object
+    capture.Kpture:
+      example:
+        captureInfo:
+          size: 1
+          packetNb: 6
+        name: name
+        startTime: 5
+        stopTime: 5
+        profilName: profilName
+        uuid: uuid
+        agents:
+        - metadata:
+            system: system
+            name: name
+            namespace: namespace
+            targetUrl: targetUrl
+            status: status
+          errors:
+          - errors
+          - errors
+          packetNb: 0
+        - metadata:
+            system: system
+            name: name
+            namespace: namespace
+            targetUrl: targetUrl
+            status: status
+          errors:
+          - errors
+          - errors
+          packetNb: 0
+        status: status
+      properties:
+        agents:
+          items:
+            $ref: '#/components/schemas/agent.Info'
+          type: array
+        captureInfo:
+          $ref: '#/components/schemas/capture.Info'
+        name:
+          type: string
+        profilName:
+          type: string
+        startTime:
+          type: integer
+        status:
+          type: string
+        stopTime:
+          type: integer
+        uuid:
+          type: string
+      type: object
+    server.kptureNamespaceRequest:
+      properties:
+        kptureName:
+          type: string
+        kptureNamespace:
+          type: string
+      type: object
+    server.kptureRequest:
+      properties:
+        agentsRequest:
+          items:
+            $ref: '#/components/schemas/server_kptureRequest_agentsRequest_inner'
+          type: array
+        kptureName:
+          type: string
+      type: object
+    server.serverError:
+      properties:
+        message:
+          type: string
+      type: object
+    server_kptureRequest_agentsRequest_inner:
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+      type: object
+  securitySchemes:
+    BasicAuth:
+      scheme: basic
+      type: http
+x-original-swagger-version: "2.0"
